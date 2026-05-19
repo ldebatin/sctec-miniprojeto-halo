@@ -16,6 +16,9 @@ public class SecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/actuator/health/**", "/actuator/info").permitAll()
+                // Webhooks têm autenticação própria por header apikey
+                // (ver EvolutionWebhookController).
+                .requestMatchers("/webhooks/**").permitAll()
                 .anyRequest().authenticated()
             )
             .httpBasic(b -> {});

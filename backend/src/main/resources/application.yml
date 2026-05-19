@@ -32,3 +32,9 @@ management:
       show-details: when_authorized
       probes:
         enabled: true
+
+halo:
+  evolution:
+    # Segredo compartilhado entre Halo e Evolution para validar webhooks.
+    # Mesmo valor que o GLOBAL_API_KEY do container evolution-go (infra/.env).
+    api-key: ${EVOLUTION_API_KEY:}
