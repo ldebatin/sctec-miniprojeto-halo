@@ -1,0 +1,66 @@
+name: halo
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: halo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-halo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-halo}
+      POSTGRES_DB: ${POSTGRES_DB:-halo}
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - halo-pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-halo} -d ${POSTGRES_DB:-halo}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - halo-net
+
+  evolution-go:
+    image: evoapicloud/evolution-go:latest
+    container_name: halo-evolution-go
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SERVER_PORT: "8080"
+      CLIENT_NAME: ${EVOLUTION_CLIENT_NAME:-halo}
+      GLOBAL_API_KEY: ${EVOLUTION_API_KEY:?defina EVOLUTION_API_KEY em infra/.env}
+      OS_NAME: "Halo Bot"
+      CONNECT_ON_STARTUP: "false"
+      WADEBUG: "INFO"
+      LOGTYPE: "console"
+      DATABASE_SAVE_MESSAGES: "true"
+      POSTGRES_AUTH_DB: postgresql://${POSTGRES_USER:-halo}:${POSTGRES_PASSWORD:-halo}@postgres:5432/evogo_auth?sslmode=disable
+      POSTGRES_USERS_DB: postgresql://${POSTGRES_USER:-halo}:${POSTGRES_PASSWORD:-halo}@postgres:5432/evogo_users?sslmode=disable
+      WEBHOOK_URL: ${EVOLUTION_WEBHOOK_URL:-}
+      WEBHOOK_FILES: "false"
+      AMQP_GLOBAL_ENABLED: "false"
+      MINIO_ENABLED: "false"
+    ports:
+      - "${EVOLUTION_HOST_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8080/swagger/index.html"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks:
+      - halo-net
+
+volumes:
+  halo-pgdata:
+    name: halo-pgdata
+
+networks:
+  halo-net:
+    name: halo-net
+    driver: bridge
