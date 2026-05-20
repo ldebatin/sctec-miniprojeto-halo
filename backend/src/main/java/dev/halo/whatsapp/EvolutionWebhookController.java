@@ -17,9 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Webhook que recebe eventos do Evolution Go (RF-02, analise-tecnica.md §8.2).
  *
- * Esta task (T-008) só faz: validar apikey, ignorar fromMe e devolver 200.
- * A persistência idempotente em whatsapp_messages, a resolução de usuário
- * por telefone e o disparo do parser de gasto entram em T-009 / T-010 / T-013.
+ * Esta task (T-009) faz: validar apikey, ignorar fromMe, persistir a mensagem
+ * em {@code whatsapp_messages} de forma idempotente via {@link InboundMessageService}
+ * e devolver 200.
+ *
+ * A resolução de usuário por telefone (popular {@code user_id}) entra em T-010.
+ * O disparo do parser de gasto entra em T-013.
  */
 @RestController
 @RequestMapping("/webhooks/evolution")
@@ -28,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EvolutionWebhookController {
 
     private final EvolutionProperties properties;
+    private final InboundMessageService inboundMessageService;
 
     @PostMapping
     public ResponseEntity<Void> receive(
@@ -44,9 +48,18 @@ public class EvolutionWebhookController {
             return ResponseEntity.ok().build();
         }
 
-        log.info("Webhook recebido: event={} instance={} msgId={} pushName={}",
+        if (!hasMsgId(payload)) {
+            log.warn("Webhook sem msgId; nada a persistir event={} instance={}",
+                    payload != null ? payload.event() : null,
+                    payload != null ? payload.instance() : null);
+            return ResponseEntity.ok().build();
+        }
+
+        inboundMessageService.record(payload);
+
+        log.info("Webhook processado event={} instance={} msgId={} pushName={}",
                 payload.event(), payload.instance(), msgId(payload),
-                payload.data() != null ? payload.data().pushName() : null);
+                payload.data().pushName());
 
         return ResponseEntity.ok().build();
     }
@@ -66,6 +79,10 @@ public class EvolutionWebhookController {
                 && payload.data() != null
                 && payload.data().key() != null
                 && Boolean.TRUE.equals(payload.data().key().fromMe());
+    }
+
+    private boolean hasMsgId(EvolutionPayloadDto payload) {
+        return msgId(payload) != null && !msgId(payload).isBlank();
     }
 
     private String msgId(EvolutionPayloadDto payload) {

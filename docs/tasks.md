@@ -173,9 +173,9 @@
 **Entrega:** ao receber webhook, persistir registro em `whatsapp_messages` usando `evolution_msg_id` como chave de idempotência. Mensagem duplicada não dispara processamento.
 
 **Critérios de aceitação:**
-- [ ] Receber o mesmo `evolution_msg_id` 2x cria apenas 1 linha em `whatsapp_messages`.
-- [ ] Telefone normalizado para E.164 antes de salvar.
-- [ ] `direction = 'IN'` em mensagens recebidas.
+- [x] Receber o mesmo `evolution_msg_id` 2x cria apenas 1 linha em `whatsapp_messages`.
+- [x] Telefone normalizado para E.164 antes de salvar.
+- [x] `direction = 'IN'` em mensagens recebidas.
 
 ---
 

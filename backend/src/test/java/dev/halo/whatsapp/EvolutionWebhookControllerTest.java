@@ -1,9 +1,15 @@
 package dev.halo.whatsapp;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import dev.halo.whatsapp.config.EvolutionProperties;
+import dev.halo.whatsapp.dto.EvolutionPayloadDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -46,11 +52,13 @@ class EvolutionWebhookControllerTest {
             }""";
 
     private MockMvc mvc;
+    private InboundMessageService inboundMessageService;
 
     @BeforeEach
     void setUp() {
-        EvolutionWebhookController controller =
-                new EvolutionWebhookController(new EvolutionProperties(API_KEY));
+        inboundMessageService = mock(InboundMessageService.class);
+        EvolutionWebhookController controller = new EvolutionWebhookController(
+                new EvolutionProperties(API_KEY), inboundMessageService);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
@@ -60,6 +68,7 @@ class EvolutionWebhookControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PAYLOAD))
                 .andExpect(status().isUnauthorized());
+        verify(inboundMessageService, never()).record(any());
     }
 
     @Test
@@ -69,23 +78,26 @@ class EvolutionWebhookControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PAYLOAD))
                 .andExpect(status().isUnauthorized());
+        verify(inboundMessageService, never()).record(any());
     }
 
     @Test
-    void com_apikey_correto_retorna_200() throws Exception {
+    void com_apikey_correto_retorna_200_e_persiste() throws Exception {
         mvc.perform(post("/webhooks/evolution")
                         .header("apikey", API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PAYLOAD))
                 .andExpect(status().isOk());
+        verify(inboundMessageService, times(1)).record(any(EvolutionPayloadDto.class));
     }
 
     @Test
-    void fromMe_true_retorna_200_sem_processar() throws Exception {
+    void fromMe_true_retorna_200_sem_persistir() throws Exception {
         mvc.perform(post("/webhooks/evolution")
                         .header("apikey", API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(FROM_ME_PAYLOAD))
                 .andExpect(status().isOk());
+        verify(inboundMessageService, never()).record(any());
     }
 }
