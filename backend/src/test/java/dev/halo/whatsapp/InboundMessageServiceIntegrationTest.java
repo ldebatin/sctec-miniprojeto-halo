@@ -2,6 +2,7 @@ package dev.halo.whatsapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.halo.ai.GeminiClient;
 import dev.halo.user.User;
 import dev.halo.user.UserRepository;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
@@ -41,10 +42,15 @@ class InboundMessageServiceIntegrationTest {
     private UserRepository userRepository;
 
     // T-011 introduziu o ConversationService que dispara sendText quando o
-    // telefone normaliza mas o usuário ainda não existe. Mock evita chamadas
-    // HTTP reais durante os testes.
+    // telefone normaliza mas o usuário ainda não existe. T-018 fez o wire do
+    // parser de gasto para usuários conhecidos — Gemini também precisa ser
+    // mockado para evitar chamadas HTTP reais E para que o AiLogService não
+    // tente inserir linhas referenciando users que vivem em transação de teste.
     @MockBean
     private EvolutionClient evolutionClient;
+
+    @MockBean
+    private GeminiClient geminiClient;
 
     private static EvolutionPayloadDto payload(String msgId, String jid, String text) {
         return new EvolutionPayloadDto(

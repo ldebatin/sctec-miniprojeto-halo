@@ -64,13 +64,16 @@ class ExpenseServiceIntegrationTest {
     }
 
     private CategoryGlobal insertGlobal(String name) {
-        CategoryGlobal global = new CategoryGlobal();
-        global.setId(UUID.randomUUID());
-        global.setName(name);
-        global.setIcon("circle");
-        global.setColor("#000000");
-        global.setKeywords(new String[0]);
-        return categoryGlobalRepository.save(global);
+        // Reutiliza se já existe (V4 seed das 12 globais do PRD pode ter inserido).
+        return categoryGlobalRepository.findByNameIgnoreCase(name).orElseGet(() -> {
+            CategoryGlobal global = new CategoryGlobal();
+            global.setId(UUID.randomUUID());
+            global.setName(name);
+            global.setIcon("circle");
+            global.setColor("#000000");
+            global.setKeywords(new String[0]);
+            return categoryGlobalRepository.save(global);
+        });
     }
 
     private Category insertUserCategory(User user, String name) {
