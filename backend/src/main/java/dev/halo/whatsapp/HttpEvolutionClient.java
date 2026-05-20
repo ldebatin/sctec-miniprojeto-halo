@@ -32,9 +32,16 @@ public class HttpEvolutionClient implements EvolutionClient {
 
     public HttpEvolutionClient(EvolutionProperties properties, RestClient.Builder builder) {
         this.properties = properties;
+        // Evolution Go: o nome da instância vai no header `instance` (não no path).
+        // A versão Node usaria `/message/sendText/{instance}` — ver
+        // docs/setup-evolution.md §2.B. Auth para endpoints por-instância
+        // (incluindo /send/text) é o INSTANCE TOKEN, não a global api-key
+        // (CLAUDE.md §"Evolution Go — modelo de auth em 2 níveis", confirmado
+        // empiricamente no bugfix da T-011/T-012).
         this.restClient = builder
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("apikey", properties.instanceToken())
+                .defaultHeader("instance", properties.instance())
                 .defaultHeader("Content-Type", MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -51,7 +58,7 @@ public class HttpEvolutionClient implements EvolutionClient {
         SendTextRequest body = new SendTextRequest(number, text);
 
         restClient.post()
-                .uri("/message/sendText/{instance}", properties.instance())
+                .uri("/send/text")
                 .body(body)
                 .retrieve()
                 .toBodilessEntity();

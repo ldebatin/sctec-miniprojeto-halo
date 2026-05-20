@@ -119,10 +119,18 @@ Resposta esperada (200) — campo de estado é `"connected"` (ou equivalente). S
 
 Substitua `5547999999999` pelo número de destino (sem `+`, com código do país). Pode mandar para o próprio número que acabou de parear ou para um terceiro autorizado.
 
+> **⚠ Auth correto** (validado empiricamente — `/send/text` rejeita a global
+> api-key com 401 e exige o **instance token** retornado por `/instance/create`,
+> bater com CLAUDE.md §"Evolution Go — modelo de auth em 2 níveis"):
+> ```bash
+> export INSTANCE_TOKEN=$(curl -sS -H "apikey: $API_KEY" \
+>   http://localhost:8080/instance/all | jq -r '.data[]|select(.name=="halo-bot").token')
+> ```
+
 ```bash
 curl -sS -X POST http://localhost:8080/send/text \
   -H "Content-Type: application/json" \
-  -H "apikey: $API_KEY" \
+  -H "apikey: $INSTANCE_TOKEN" \
   -H "instance: halo-bot" \
   -d '{
         "number": "5547999999999",

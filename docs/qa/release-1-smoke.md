@@ -22,6 +22,11 @@
 
 Tudo isto deve estar pronto **antes** do usuário externo entrar em cena.
 
+> **Atalho:** rode `scripts/smoke-prereqs.sh` para verificar/preparar
+> automaticamente os 6 primeiros itens abaixo. Use `scripts/smoke-prereqs.sh
+> --webhook https://<URL>/webhooks/evolution` depois de subir o ngrok para
+> também configurar o webhook do Evolution.
+
 - [ ] `infra/docker compose up -d` rodando (Postgres + Evolution Go).
 - [ ] Instância `halo-bot` conectada ao Evolution (T-006). Confirme com:
   ```bash

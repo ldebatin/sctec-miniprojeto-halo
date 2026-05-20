@@ -103,8 +103,12 @@ class HttpEvolutionClientResilienceTest {
 
     @Test
     void sendText_chama_endpoint_correto_no_caminho_feliz() {
-        mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+        mockServer.expect(requestTo("http://evolution.test/send/text"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .header("instance", "halo-bot"))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .header("apikey", "fake-token"))
                 .andRespond(withSuccess());
 
         client.sendText("+5547999999999", "Oi");
@@ -114,11 +118,11 @@ class HttpEvolutionClientResilienceTest {
 
     @Test
     void retry_em_5xx_ate_obter_sucesso() {
-        mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+        mockServer.expect(requestTo("http://evolution.test/send/text"))
                 .andRespond(withServerError());
-        mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+        mockServer.expect(requestTo("http://evolution.test/send/text"))
                 .andRespond(withServerError());
-        mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+        mockServer.expect(requestTo("http://evolution.test/send/text"))
                 .andRespond(withSuccess());
 
         client.sendText("+5547999999999", "Oi");
@@ -128,7 +132,7 @@ class HttpEvolutionClientResilienceTest {
 
     @Test
     void erros_4xx_nao_disparam_retry() {
-        mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+        mockServer.expect(requestTo("http://evolution.test/send/text"))
                 .andRespond(withBadRequest());
 
         assertThatThrownBy(() -> client.sendText("+5547999999999", "Oi"))
@@ -141,7 +145,7 @@ class HttpEvolutionClientResilienceTest {
     void circuit_breaker_abre_apos_5_falhas_consecutivas() {
         // 5 chamadas, cada uma retornando 503 nas 3 tentativas do retry = 15 respostas
         for (int i = 0; i < 15; i++) {
-            mockServer.expect(requestTo("http://evolution.test/message/sendText/halo-bot"))
+            mockServer.expect(requestTo("http://evolution.test/send/text"))
                     .andRespond(withServerError());
         }
 
