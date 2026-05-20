@@ -252,10 +252,10 @@
 **Entrega:** `ExpenseService.createFromWhatsapp(user, parseResult, rawMessage)` que resolve a categoria (match por nome em globais/customizadas) e persiste o gasto.
 
 **Critérios de aceitação:**
-- [ ] Match de categoria é case-insensitive, primeiro busca em customizadas do user, depois em globais.
-- [ ] Se `category_hint` não bate com nenhuma, usa "Sem categoria" (categoria global especial).
-- [ ] `expense.source = 'WHATSAPP'`, `expense.raw_message = <texto original>`, `expense.occurred_at = parseResult.occurred_at || today()`.
-- [ ] `expense.amount` validado > 0; valores ≤ 0 são rejeitados com log.
+- [x] Match de categoria é case-insensitive, primeiro busca em customizadas do user, depois em globais.
+- [x] Se `category_hint` não bate com nenhuma, usa "Sem categoria" (categoria global especial).
+- [x] `expense.source = 'WHATSAPP'`, `expense.raw_message = <texto original>`, `expense.occurred_at = parseResult.occurred_at || today()`.
+- [x] `expense.amount` validado > 0; valores ≤ 0 são rejeitados com log.
 
 ---
 
