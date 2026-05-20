@@ -235,11 +235,11 @@
 **Entrega:** `GeminiClient.parseExpense(text, userCategories)` que chama `gemini-2.5-flash` com `response_mime_type=application/json` e retorna `ExpenseParseResult` ou `null` (em caso de erro/`NOT_EXPENSE`).
 
 **Critérios de aceitação:**
-- [ ] Prompt segue o template da [analise-tecnica.md §9.2](./analise-tecnica.md), injetando categorias globais + customizadas do usuário.
-- [ ] `temperature=0.2`, `max_output_tokens=200`.
-- [ ] Retorno bem-sucedido contém: `description`, `amount`, `category_hint`, `occurred_at` (opcional).
-- [ ] JSON inválido ou `{"error":"NOT_EXPENSE"}` resultam em `null`.
-- [ ] Mensagens > 500 chars são truncadas antes de enviar.
+- [x] Prompt segue o template da [analise-tecnica.md §9.2](./analise-tecnica.md), injetando categorias globais + customizadas do usuário.
+- [x] `temperature=0.2`, `max_output_tokens=200`.
+- [x] Retorno bem-sucedido contém: `description`, `amount`, `category_hint`, `occurred_at` (opcional).
+- [x] JSON inválido ou `{"error":"NOT_EXPENSE"}` resultam em `null`.
+- [x] Mensagens > 500 chars são truncadas antes de enviar.
 
 ---
 

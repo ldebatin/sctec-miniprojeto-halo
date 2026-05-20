@@ -73,6 +73,13 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
 
 halo:
+  gemini:
+    # Chave da API Google AI Studio (lida do .env em dev).
+    api-key: ${GEMINI_API_KEY:}
+    # Endpoint REST do Google AI (não confundir com Vertex AI).
+    base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
+    # Modelo default — analise-tecnica §9.1.
+    model: ${GEMINI_MODEL:gemini-2.5-flash}
   evolution:
     # Segredo compartilhado entre Halo e Evolution para validar webhooks.
     # Mesmo valor que o GLOBAL_API_KEY do container evolution-go (infra/.env).
