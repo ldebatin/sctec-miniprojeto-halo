@@ -38,3 +38,12 @@ halo:
     # Segredo compartilhado entre Halo e Evolution para validar webhooks.
     # Mesmo valor que o GLOBAL_API_KEY do container evolution-go (infra/.env).
     api-key: ${EVOLUTION_API_KEY:}
+    # URL base do Evolution Go que o backend usa ao ENVIAR mensagens.
+    # Em dev local com compose: http://localhost:8081 (default na infra/.env).
+    # Em produção: URL interna do Evolution na rede docker.
+    base-url: ${EVOLUTION_BASE_URL:http://localhost:8081}
+    # Instância criada via Manager UI (nome do bot — default: halo-bot).
+    instance: ${EVOLUTION_INSTANCE:halo-bot}
+    # Token da instância (retornado em POST /instance/create), usado em
+    # endpoints por-instância como /message/sendText/{instance}. Ver CLAUDE.md.
+    instance-token: ${EVOLUTION_INSTANCE_TOKEN:}
