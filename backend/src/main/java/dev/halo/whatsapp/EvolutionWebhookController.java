@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Webhook que recebe eventos do Evolution Go (RF-02, analise-tecnica.md §8.2).
  *
- * Esta task (T-009) faz: validar apikey, ignorar fromMe, persistir a mensagem
- * em {@code whatsapp_messages} de forma idempotente via {@link InboundMessageService}
- * e devolver 200.
+ * Esta task (T-010) faz: validar apikey, ignorar fromMe, persistir a mensagem
+ * em {@code whatsapp_messages} via {@link InboundMessageService} (idempotente)
+ * e popular {@code user_id} quando o telefone bate com um usuário cadastrado.
+ * Sempre devolve 200 nos eventos aceitos.
  *
- * A resolução de usuário por telefone (popular {@code user_id}) entra em T-010.
  * O disparo do parser de gasto entra em T-013.
  */
 @RestController

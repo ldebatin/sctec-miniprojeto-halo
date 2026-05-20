@@ -188,9 +188,9 @@
 **Entrega:** classe `PhoneNumberService` que normaliza qualquer entrada (com/sem `+`, com/sem `@s.whatsapp.net`) para E.164, e `UserService.findOrNull(phone)`.
 
 **Critérios de aceitação:**
-- [ ] Testes unitários cobrem entradas: `+5547999999999`, `5547999999999`, `5547999999999@s.whatsapp.net`.
-- [ ] Telefone inválido lança exceção tratada (resposta apropriada no webhook).
-- [ ] `findOrNull(phone)` retorna `User` ou `null`.
+- [x] Testes unitários cobrem entradas: `+5547999999999`, `5547999999999`, `5547999999999@s.whatsapp.net`.
+- [x] Telefone inválido lança exceção tratada (resposta apropriada no webhook).
+- [x] `findOrNull(phone)` retorna `User` ou `null`.
 
 ---
 
