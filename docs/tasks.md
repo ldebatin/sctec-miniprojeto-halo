@@ -268,10 +268,10 @@
 **Entrega:** `ExpenseConfirmationFormatter` que monta a mensagem de confirmação com descrição, valor (`R$ X.XXX,YY`), categoria e data (`DD/MM`).
 
 **Critérios de aceitação:**
-- [ ] Mensagem segue o padrão: `Registrado: <descrição> R$ <valor> → <categoria>. Data: <DD/MM>. Use a web para alterar.`
-- [ ] Valor formatado em pt-BR com separador de milhar `.` e decimal `,`.
-- [ ] Categoria fallback exibe "Sem categoria" exatamente.
-- [ ] Confirmação é enviada via `EvolutionClient.sendText`.
+- [x] Mensagem segue o padrão: `Registrado: <descrição> R$ <valor> → <categoria>. Data: <DD/MM>. Use a web para alterar.`
+- [x] Valor formatado em pt-BR com separador de milhar `.` e decimal `,`.
+- [x] Categoria fallback exibe "Sem categoria" exatamente.
+- [x] Confirmação é enviada via `EvolutionClient.sendText`.
 
 ---
 
