@@ -33,6 +33,45 @@ management:
       probes:
         enabled: true
 
+resilience4j:
+  # Política de envio ao Evolution Go (T-012, RF-04). 3 tentativas com backoff
+  # exponencial 1s/3s/9s em 5xx ou IOException; 4xx falha imediatamente.
+  # CB abre após 5 falhas consecutivas (5xx/IO), meio-aberto após 30s.
+  #
+  # Aspect order: invertemos o default (Retry outer, CB inner) para que cada
+  # sendText() conte como UMA chamada do CB — assim "5 falhas consecutivas"
+  # significa 5 sendText falhando, não 5 retries.
+  retry:
+    retry-aspect-order: 400
+    instances:
+      evolution:
+        max-attempts: 3
+        wait-duration: 1s
+        exponential-backoff-multiplier: 3
+        retry-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+  circuitbreaker:
+    circuit-breaker-aspect-order: 300
+    instances:
+      evolution:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 5
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 100
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 1
+        automatic-transition-from-open-to-half-open-enabled: true
+        record-exceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+
 halo:
   evolution:
     # Segredo compartilhado entre Halo e Evolution para validar webhooks.

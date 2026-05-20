@@ -219,10 +219,10 @@
 **Entrega:** `EvolutionClient` (Spring RestClient) com método `sendText(phone, text)` e retry exponencial (3 tentativas: 1s/3s/9s) em erros 5xx. Circuit breaker via Resilience4j.
 
 **Critérios de aceitação:**
-- [ ] `sendText` chama `POST /message/sendText/{instance}` corretamente.
-- [ ] Erros 5xx disparam retry; erros 4xx falham imediatamente.
-- [ ] Circuit breaker abre após 5 falhas consecutivas; meio-aberto após 30s.
-- [ ] Testes unitários com mock do RestClient cobrem o caminho feliz e o de retry.
+- [x] `sendText` chama `POST /message/sendText/{instance}` corretamente.
+- [x] Erros 5xx disparam retry; erros 4xx falham imediatamente.
+- [x] Circuit breaker abre após 5 falhas consecutivas; meio-aberto após 30s.
+- [x] Testes unitários com mock do RestClient cobrem o caminho feliz e o de retry.
 
 ---
 
