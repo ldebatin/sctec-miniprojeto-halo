@@ -14,6 +14,7 @@ User answered Claude's questions:
      · O Gemini deve interpretar também áudios e imagens (foto de cupom fiscal) ou só texto? → Só texto (MVP)
 --
 
+#####
 
 Você é um analista de negócios. Analise os arquivos docs/ideia-inicial.md e docs/analise-tecnica.md e crie um PRD para implementação da aplicação, para os diagramas utilize o padrão mermaid, durante o processo me faça perguntas para melhorar seu contexto ou tirar dúvidas e monte um documento docs/prd.md
 
@@ -26,6 +27,8 @@ User answered Claude's questions:
      · Como o usuário deve descobrir e iniciar uso do Halo (onboarding)? → Não é prioridade no MVP — definir depois
 --
 
+#####
+
 Você é um PO. Com base no docs/PRD.md criar tarefas, com um contexto fechado (tenha uma entrega), para realiza a implementação da aplicação.
 
 --
@@ -35,4 +38,15 @@ User answered Claude's questions:
      · O que incluir em cada tarefa além de descrição e critérios de aceitação? → Estimativa em dias, Dependências entre tarefas, Referência aos RFs do PRD, Componente/módulo afetado
 --
 
+#####
+
 Agora importe as tasks no GitHub Projects, no kanban Projeto Halo
+
+#####
+
+/clear
+carregar prd do projeto
+agora carregar a T-001 do GitHub Projects
+comece a implementação do item
+
+#####

@@ -56,6 +56,54 @@ services:
     networks:
       - halo-net
 
+  # ---------------------------------------------------------------------------
+  # Serviços do profile `app` — opt-in via `docker compose --profile app up -d`.
+  # Default (`docker compose up -d`) sobe só infra (postgres + evolution-go),
+  # mantendo backend/frontend rodando localmente com mvn / npm e hot-reload.
+  # ---------------------------------------------------------------------------
+
+  backend:
+    profiles: ["app"]
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: halo-backend:dev
+    container_name: halo-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-halo}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-halo}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-halo}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY}
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${BACKEND_HOST_PORT:-8080}:8080"
+    networks:
+      - halo-net
+
+  frontend:
+    profiles: ["app"]
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        # URL da API acessada pelo BROWSER (fora da rede docker).
+        # Quando o backend roda no compose com ports 8080:8080, o browser
+        # alcança via http://localhost:8080.
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    image: halo-frontend:dev
+    container_name: halo-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_HOST_PORT:-5173}:80"
+    networks:
+      - halo-net
+
 volumes:
   halo-pgdata:
     name: halo-pgdata
