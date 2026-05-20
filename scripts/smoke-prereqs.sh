@@ -113,52 +113,78 @@ fi
 
 # ---------- 7. Evolution: instância halo-bot ----------
 heading "Evolution Go — instância halo-bot"
-INSTANCE_TOKEN="${EVOLUTION_INSTANCE_TOKEN:-}"
-if [[ -z "$INSTANCE_TOKEN" ]]; then
-  err "EVOLUTION_INSTANCE_TOKEN vazio em infra/.env — pareie a instância no Manager UI primeiro (T-006)"
+# O Evolution Go usa endpoints DIFERENTES da Evolution API (Node) — ver
+# docs/setup-evolution.md §2.B. Listagem de instâncias é por-Evolution e usa
+# a GLOBAL_API_KEY (sem header `instance`).
+EVOLUTION_INSTANCE_NAME="${EVOLUTION_INSTANCE:-halo-bot}"
+instances_json=$(curl -fsS --max-time 5 -H "apikey: $EVOLUTION_API_KEY" \
+  "$EVOLUTION_BASE_URL_CLI/instance/all" 2>&1 || true)
+if [[ "$instances_json" != *'"data":'* ]]; then
+  err "Evolution Go não respondeu como esperado em /instance/all: $instances_json"
+  err "  - Se HTTP 503: licença não ativada — abra http://localhost:8081/manager/login e siga docs/setup-evolution.md §1."
+  err "  - Se 401: EVOLUTION_API_KEY no infra/.env está errado."
   exit 1
 fi
-state_json=$(curl -fsS --max-time 5 -H "apikey: $INSTANCE_TOKEN" \
-  "$EVOLUTION_BASE_URL_CLI/instance/connectionState/halo-bot" 2>&1 || true)
-if [[ "$state_json" == *'"state":"open"'* ]]; then
-  ok "halo-bot conectado ao WhatsApp"
-elif [[ "$state_json" == *'"state":'* ]]; then
-  warn "halo-bot não está OPEN — resposta: $state_json"
-  warn "refaça o pareamento via Manager UI / QR code"
-else
-  err "Evolution não respondeu como esperado: $state_json"
+if [[ "$instances_json" != *"\"name\":\"$EVOLUTION_INSTANCE_NAME\""* ]]; then
+  err "Instância '$EVOLUTION_INSTANCE_NAME' não existe — crie via Manager UI ou:"
+  echo "    curl -X POST -H 'apikey: \$EVOLUTION_API_KEY' -H 'Content-Type: application/json' \\"
+  echo "      -d '{\"name\":\"$EVOLUTION_INSTANCE_NAME\"}' $EVOLUTION_BASE_URL_CLI/instance/create"
   exit 1
+fi
+# Extrai status de conexão da resposta de /instance/all (o campo `connected: true|false`).
+if [[ "$instances_json" == *"\"name\":\"$EVOLUTION_INSTANCE_NAME\""*'"connected":true'* ]] \
+   || python3 -c "
+import json,sys
+data = json.loads('''$instances_json''')
+for inst in data.get('data', []):
+    if inst.get('name') == '$EVOLUTION_INSTANCE_NAME' and inst.get('connected'):
+        sys.exit(0)
+sys.exit(1)
+" 2>/dev/null; then
+  ok "$EVOLUTION_INSTANCE_NAME conectado ao WhatsApp"
+else
+  warn "$EVOLUTION_INSTANCE_NAME existe mas NÃO está connected — refaça o pareamento via Manager UI"
+fi
+
+# Aviso sobre o instance token (necessário pro backend enviar mensagens).
+if [[ -z "${EVOLUTION_INSTANCE_TOKEN:-}" ]]; then
+  warn "EVOLUTION_INSTANCE_TOKEN não definido em backend/.env — sem ele, o backend não envia confirmações."
+  echo "  Recupere com:"
+  echo "    curl -H \"apikey: \$EVOLUTION_API_KEY\" $EVOLUTION_BASE_URL_CLI/instance/all | jq -r '.data[]|select(.name==\"$EVOLUTION_INSTANCE_NAME\").token'"
 fi
 
 # ---------- 8. webhook ----------
 if [[ -n "$WEBHOOK_URL" ]]; then
-  heading "Configurando webhook do halo-bot → $WEBHOOK_URL"
-  if curl -fsS --max-time 5 -X POST "$EVOLUTION_BASE_URL_CLI/webhook/set/halo-bot" \
-        -H "apikey: $INSTANCE_TOKEN" \
+  heading "Configurando webhook do $EVOLUTION_INSTANCE_NAME → $WEBHOOK_URL"
+  # Evolution Go usa POST /instance/connect com webhookUrl no body
+  # (docs/setup-evolution.md §6 — formato Go, não Node).
+  if curl -fsS --max-time 5 -X POST "$EVOLUTION_BASE_URL_CLI/instance/connect" \
+        -H "apikey: $EVOLUTION_API_KEY" \
+        -H "instance: $EVOLUTION_INSTANCE_NAME" \
         -H "Content-Type: application/json" \
         -d "{
-          \"webhook\": {
-            \"enabled\": true,
-            \"url\": \"$WEBHOOK_URL\",
-            \"headers\": { \"apikey\": \"$EVOLUTION_API_KEY\" },
-            \"events\": [\"MESSAGES_UPSERT\"]
-          }
+          \"webhookUrl\": \"$WEBHOOK_URL\",
+          \"subscribe\": [\"messages.upsert\"]
         }" >/dev/null; then
     ok "webhook configurado"
   else
-    err "set/webhook falhou — verifique URL e instance-token, ou configure manualmente"
+    err "/instance/connect falhou — configure manualmente conforme docs/setup-evolution.md §6"
     exit 1
   fi
 else
   heading "Webhook (manual)"
   cat <<EOM
-Para o Evolution conseguir falar com o backend você precisa expor 8080
-publicamente. Sugestão:
+O backend roda no HOST (localhost:8080) e o Evolution Go roda num
+container — 'localhost' dentro do container aponta pro próprio container,
+não pro backend. Use uma das duas opções:
 
-  1) Em outro terminal:    ngrok http 8080
-  2) Anote a URL retornada (https://abcd-1234.ngrok-free.app)
-  3) Rode este script de novo com:
-     $0 --webhook https://abcd-1234.ngrok-free.app/webhooks/evolution
+  A) host.docker.internal (mais simples em dev — Docker 20.10+):
+     $0 --webhook http://host.docker.internal:8080/webhooks/evolution
+
+  B) ngrok (necessário para testar com WhatsApp real):
+     1) Em outro terminal:    ngrok http 8080
+     2) Anote a URL https://abcd-1234.ngrok-free.app
+     3) $0 --webhook https://abcd-1234.ngrok-free.app/webhooks/evolution
 EOM
 fi
 
