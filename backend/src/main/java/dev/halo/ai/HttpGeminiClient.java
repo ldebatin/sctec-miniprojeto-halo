@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -18,13 +19,12 @@ import org.springframework.web.client.RestClientException;
  * Implementação HTTP do {@link GeminiClient} contra a API REST do Google AI
  * (endpoint {@code generativelanguage.googleapis.com}).
  *
- * Esta task (T-013) só faz: montar o prompt do §9.2, truncar mensagens > 500
- * chars (§9.4), chamar {@code generateContent} com {@code temperature=0.2},
- * {@code maxOutputTokens=200} e {@code responseMimeType=application/json}, e
- * devolver {@link ExpenseParseResult} ou {@code null} (NOT_EXPENSE / JSON
- * inválido / erro HTTP).
+ * Esta task (T-017) registra cada chamada em {@code ai_log} via
+ * {@link AiLogService} — sucesso ({@code OK}), JSON inválido
+ * ({@code INVALID_JSON}) ou erro de rede ({@code ERROR}). Tokens vêm do
+ * {@code usageMetadata} da resposta; quando não há resposta (erro HTTP), os
+ * contadores ficam em zero.
  *
- * <p>Logging em {@code ai_log} (tokens, latência, custo) entra em T-017.
  * Cache de classificação por descrição entra em T-043.
  */
 @Component
@@ -40,8 +40,12 @@ public class HttpGeminiClient implements GeminiClient {
     private final GeminiProperties properties;
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
+    private final AiLogService aiLogService;
 
-    public HttpGeminiClient(GeminiProperties properties, RestClient.Builder builder) {
+    public HttpGeminiClient(
+            GeminiProperties properties,
+            RestClient.Builder builder,
+            AiLogService aiLogService) {
         this.properties = properties;
         this.restClient = builder
                 .baseUrl(properties.baseUrl())
@@ -49,16 +53,19 @@ public class HttpGeminiClient implements GeminiClient {
                 .build();
         this.objectMapper = new ObjectMapper()
                 .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        this.aiLogService = aiLogService;
     }
 
     @Override
-    public ExpenseParseResult parseExpense(String text, List<String> userCategoryNames) {
+    public ExpenseParseResult parseExpense(
+            String text, List<String> userCategoryNames, UUID userId) {
         String prompt = buildPrompt(truncate(text), userCategoryNames);
         GenerateContentRequest body = new GenerateContentRequest(
                 List.of(new Content(List.of(new Part(prompt)))),
                 new GenerationConfig(TEMPERATURE, MAX_OUTPUT_TOKENS, "application/json")
         );
 
+        long startedAt = System.currentTimeMillis();
         GenerateContentResponse response;
         try {
             response = restClient.post()
@@ -69,16 +76,27 @@ public class HttpGeminiClient implements GeminiClient {
                     .body(GenerateContentResponse.class);
         } catch (RestClientException e) {
             log.warn("Falha na chamada ao Gemini: {}", e.getMessage());
+            aiLogService.record(userId, properties.model(), prompt, 0, 0,
+                    elapsedMs(startedAt), AiLogStatus.ERROR);
             return null;
         }
+
+        int tokensIn = tokensIn(response);
+        int tokensOut = tokensOut(response);
+        int latencyMs = elapsedMs(startedAt);
 
         String rawJson = extractText(response);
         if (rawJson == null || rawJson.isBlank()) {
             log.warn("Resposta do Gemini sem conteúdo");
+            aiLogService.record(userId, properties.model(), prompt, tokensIn, tokensOut,
+                    latencyMs, AiLogStatus.INVALID_JSON);
             return null;
         }
 
-        return parseJson(rawJson);
+        ParseOutcome outcome = parseJson(rawJson);
+        aiLogService.record(userId, properties.model(), prompt, tokensIn, tokensOut,
+                latencyMs, outcome.status());
+        return outcome.result();
     }
 
     /** §9.4 — trunca mensagens muito longas antes de enviar. */
@@ -109,28 +127,43 @@ public class HttpGeminiClient implements GeminiClient {
                 """.formatted(categoryList, userText);
     }
 
-    private ExpenseParseResult parseJson(String raw) {
+    private ParseOutcome parseJson(String raw) {
         try {
             ExpenseJson dto = objectMapper.readValue(raw, ExpenseJson.class);
             if (dto.error() != null) {
+                // NOT_EXPENSE é classificação correta — log como OK, conteúdo válido.
                 log.debug("Gemini classificou como não-gasto: {}", dto.error());
-                return null;
+                return new ParseOutcome(AiLogStatus.OK, null);
             }
             if (dto.description() == null || dto.amount() == null) {
                 log.warn("JSON do Gemini incompleto: {}", raw);
-                return null;
+                return new ParseOutcome(AiLogStatus.INVALID_JSON, null);
             }
             LocalDate occurredAt = parseDate(dto.occurredAt());
-            return new ExpenseParseResult(
+            return new ParseOutcome(AiLogStatus.OK, new ExpenseParseResult(
                     dto.description(),
                     dto.amount(),
                     dto.categoryHint(),
                     occurredAt
-            );
+            ));
         } catch (Exception e) {
             log.warn("JSON do Gemini inválido: {}", e.getMessage());
-            return null;
+            return new ParseOutcome(AiLogStatus.INVALID_JSON, null);
         }
+    }
+
+    private static int elapsedMs(long startedAt) {
+        return (int) Math.min(Integer.MAX_VALUE, System.currentTimeMillis() - startedAt);
+    }
+
+    private static int tokensIn(GenerateContentResponse response) {
+        if (response == null || response.usageMetadata() == null) return 0;
+        return response.usageMetadata().promptTokenCount();
+    }
+
+    private static int tokensOut(GenerateContentResponse response) {
+        if (response == null || response.usageMetadata() == null) return 0;
+        return response.usageMetadata().candidatesTokenCount();
     }
 
     private static LocalDate parseDate(String raw) {
@@ -171,9 +204,17 @@ public class HttpGeminiClient implements GeminiClient {
             String responseMimeType
     ) {}
 
-    private record GenerateContentResponse(List<Candidate> candidates) {}
+    private record GenerateContentResponse(
+            List<Candidate> candidates,
+            UsageMetadata usageMetadata
+    ) {}
 
     private record Candidate(Content content) {}
+
+    private record UsageMetadata(
+            int promptTokenCount,
+            int candidatesTokenCount
+    ) {}
 
     /** Estrutura esperada do JSON devolvido pelo modelo (corpo do {@code Part.text}). */
     private record ExpenseJson(
@@ -183,4 +224,7 @@ public class HttpGeminiClient implements GeminiClient {
             @JsonProperty("occurred_at") String occurredAt,
             String error
     ) {}
+
+    /** Resultado interno do {@code parseJson} — combina status para o ai_log e o ParseResult. */
+    private record ParseOutcome(AiLogStatus status, ExpenseParseResult result) {}
 }

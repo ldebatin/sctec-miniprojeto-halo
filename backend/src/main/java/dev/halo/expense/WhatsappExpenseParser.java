@@ -4,6 +4,7 @@ import dev.halo.ai.ExpenseParseResult;
 import dev.halo.ai.GeminiClient;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,8 +34,8 @@ public class WhatsappExpenseParser {
 
     private final GeminiClient geminiClient;
 
-    public ExpenseParseResult parse(String text, List<String> userCategoryNames) {
-        ExpenseParseResult fromGemini = geminiClient.parseExpense(text, userCategoryNames);
+    public ExpenseParseResult parse(String text, List<String> userCategoryNames, UUID userId) {
+        ExpenseParseResult fromGemini = geminiClient.parseExpense(text, userCategoryNames, userId);
         if (fromGemini != null) {
             return fromGemini;
         }

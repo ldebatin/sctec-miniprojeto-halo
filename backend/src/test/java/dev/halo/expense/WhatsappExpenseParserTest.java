@@ -33,18 +33,18 @@ class WhatsappExpenseParserTest {
     void usa_resultado_do_Gemini_quando_disponivel() {
         ExpenseParseResult expected = new ExpenseParseResult(
                 "Mercado", new BigDecimal("87.30"), "Mercado", LocalDate.of(2026, 5, 18));
-        when(geminiClient.parseExpense(anyString(), anyList())).thenReturn(expected);
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(expected);
 
-        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"));
+        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"), null);
 
         assertThat(result).isSameAs(expected);
     }
 
     @Test
     void fallback_persiste_gasto_quando_Gemini_falha_e_regex_acha_valor() {
-        when(geminiClient.parseExpense(anyString(), anyList())).thenReturn(null);
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(null);
 
-        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"));
+        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"), null);
 
         assertThat(result).isNotNull();
         assertThat(result.amount()).isEqualByComparingTo(new BigDecimal("87.30"));
@@ -57,27 +57,27 @@ class WhatsappExpenseParserTest {
 
     @Test
     void ignora_mensagem_quando_Gemini_falha_e_regex_nao_acha_valor() {
-        when(geminiClient.parseExpense(anyString(), anyList())).thenReturn(null);
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(null);
 
-        ExpenseParseResult result = parser.parse("Oi, tudo bem?", List.of("Mercado"));
+        ExpenseParseResult result = parser.parse("Oi, tudo bem?", List.of("Mercado"), null);
 
         assertThat(result).isNull();
     }
 
     @Test
     void ignora_mensagem_com_valor_zero_extraido() {
-        when(geminiClient.parseExpense(anyString(), anyList())).thenReturn(null);
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(null);
 
-        ExpenseParseResult result = parser.parse("estou na conta 0", List.of("Mercado"));
+        ExpenseParseResult result = parser.parse("estou na conta 0", List.of("Mercado"), null);
 
         assertThat(result).isNull();
     }
 
     @Test
     void fallback_lida_com_valor_pt_BR_com_milhar() {
-        when(geminiClient.parseExpense(any(), any())).thenReturn(null);
+        when(geminiClient.parseExpense(any(), any(), any())).thenReturn(null);
 
-        ExpenseParseResult result = parser.parse("Notebook 1.234,56", List.of());
+        ExpenseParseResult result = parser.parse("Notebook 1.234,56", List.of(), null);
 
         assertThat(result).isNotNull();
         assertThat(result.amount()).isEqualByComparingTo(new BigDecimal("1234.56"));
