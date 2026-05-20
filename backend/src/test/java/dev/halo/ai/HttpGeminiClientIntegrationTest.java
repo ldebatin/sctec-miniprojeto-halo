@@ -71,8 +71,9 @@ class HttpGeminiClientIntegrationTest {
         HttpGeminiClient httpGeminiClient(
                 GeminiProperties properties,
                 RestClient.Builder builder,
-                MockRestServiceServer mockServer) {
-            return new HttpGeminiClient(properties, builder);
+                MockRestServiceServer mockServer,
+                AiLogService aiLogService) {
+            return new HttpGeminiClient(properties, builder, aiLogService);
         }
     }
 
@@ -121,7 +122,7 @@ class HttpGeminiClientIntegrationTest {
                 .andRespond(withSuccess(successResponse(modelJson), MediaType.APPLICATION_JSON));
 
         ExpenseParseResult result = client.parseExpense(
-                "Mercado 87,30", List.of("Alimentação", "Mercado"));
+                "Mercado 87,30", List.of("Alimentação", "Mercado"), null);
 
         assertThat(result).isNotNull();
         assertThat(result.description()).isEqualTo("Mercado");
@@ -138,7 +139,7 @@ class HttpGeminiClientIntegrationTest {
                         successResponse("{\"error\":\"NOT_EXPENSE\"}"),
                         MediaType.APPLICATION_JSON));
 
-        ExpenseParseResult result = client.parseExpense("oi", List.of("Mercado"));
+        ExpenseParseResult result = client.parseExpense("oi", List.of("Mercado"), null);
 
         assertThat(result).isNull();
         mockServer.verify();
@@ -151,7 +152,7 @@ class HttpGeminiClientIntegrationTest {
                         successResponse("isto-nao-eh-json"),
                         MediaType.APPLICATION_JSON));
 
-        ExpenseParseResult result = client.parseExpense("Mercado 87,30", List.of("Mercado"));
+        ExpenseParseResult result = client.parseExpense("Mercado 87,30", List.of("Mercado"), null);
 
         assertThat(result).isNull();
         mockServer.verify();
@@ -162,7 +163,7 @@ class HttpGeminiClientIntegrationTest {
         mockServer.expect(requestTo(ENDPOINT))
                 .andRespond(withServerError());
 
-        ExpenseParseResult result = client.parseExpense("Mercado 87,30", List.of("Mercado"));
+        ExpenseParseResult result = client.parseExpense("Mercado 87,30", List.of("Mercado"), null);
 
         assertThat(result).isNull();
         mockServer.verify();
@@ -181,7 +182,7 @@ class HttpGeminiClientIntegrationTest {
                 .andExpect(content().string(Matchers.containsString("x".repeat(500))))
                 .andRespond(withSuccess(successResponse(modelJson), MediaType.APPLICATION_JSON));
 
-        ExpenseParseResult result = client.parseExpense(longUserText, List.of("Outros"));
+        ExpenseParseResult result = client.parseExpense(longUserText, List.of("Outros"), null);
 
         assertThat(result).isNotNull();
         mockServer.verify();
@@ -195,7 +196,7 @@ class HttpGeminiClientIntegrationTest {
         mockServer.expect(requestTo(ENDPOINT))
                 .andRespond(withSuccess(successResponse(modelJson), MediaType.APPLICATION_JSON));
 
-        ExpenseParseResult result = client.parseExpense("Uber 25", List.of("Transporte"));
+        ExpenseParseResult result = client.parseExpense("Uber 25", List.of("Transporte"), null);
 
         assertThat(result).isNotNull();
         assertThat(result.occurredAt()).isNull();

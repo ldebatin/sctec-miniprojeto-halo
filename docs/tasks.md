@@ -300,10 +300,10 @@
 **Entrega:** toda chamada ao `GeminiClient` registra linha em `ai_log` com modelo, hash do prompt, tokens in/out (do response da Gemini), latência e status (`OK`, `INVALID_JSON`, `ERROR`).
 
 **Critérios de aceitação:**
-- [ ] `ai_log.user_id` preenchido quando o user é conhecido.
-- [ ] `prompt_hash` é SHA-256 do prompt (não armazenamos o texto completo).
-- [ ] Custo estimado (`cost_est`) calculado com base nos tokens e preço documentado (constante).
-- [ ] Status reflete: sucesso, JSON inválido, erro de rede.
+- [x] `ai_log.user_id` preenchido quando o user é conhecido.
+- [x] `prompt_hash` é SHA-256 do prompt (não armazenamos o texto completo).
+- [x] Custo estimado (`cost_est`) calculado com base nos tokens e preço documentado (constante).
+- [x] Status reflete: sucesso, JSON inválido, erro de rede.
 
 ---
 
