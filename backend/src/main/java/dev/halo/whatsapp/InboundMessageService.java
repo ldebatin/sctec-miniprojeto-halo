@@ -1,5 +1,6 @@
 package dev.halo.whatsapp;
 
+import dev.halo.expense.WhatsappExpenseProcessor;
 import dev.halo.user.InvalidPhoneException;
 import dev.halo.user.PhoneNumberService;
 import dev.halo.user.User;
@@ -16,15 +17,16 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Persiste mensagens recebidas via webhook do Evolution Go em
  * {@code whatsapp_messages} de forma idempotente e dispara o roteamento
- * conversacional inicial (RF-01/RF-02, analise-tecnica.md §6.2/§7.1).
+ * conversacional inicial (RF-01/RF-02/RF-03, analise-tecnica.md §6.2/§7.1/§7.2).
  *
- * Esta task (T-011) adiciona: quando o telefone normaliza mas não bate com um
- * {@link User} existente, delega para {@link ConversationService} (cadastro
- * AWAITING_NAME). Telefone inválido continua sendo logado e persistido com
- * {@code user_id=null} para não quebrar o webhook.
- *
- * Disparo do parser de gasto (para usuários já cadastrados) e atualização de
- * {@code status=PROCESSED}/{@code FAILED} entram em T-013.
+ * Esta task (T-018) fecha o fluxo end-to-end da Release 1:
+ * <ul>
+ *   <li>Telefone inválido → log warning, mensagem persistida com {@code user_id=null}.</li>
+ *   <li>Telefone válido sem cadastro → delega para {@link ConversationService}
+ *       (AWAITING_NAME, T-011).</li>
+ *   <li>Telefone válido com cadastro → delega para {@link WhatsappExpenseProcessor}
+ *       (parser do Gemini ou fallback heurístico → expense + confirmação).</li>
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -35,6 +37,7 @@ public class InboundMessageService {
     private final PhoneNumberService phoneNumberService;
     private final UserService userService;
     private final ConversationService conversationService;
+    private final WhatsappExpenseProcessor expenseProcessor;
 
     /**
      * Persiste a mensagem se ainda não existe; caso contrário devolve a existente.
@@ -81,10 +84,18 @@ public class InboundMessageService {
 
         WhatsappMessage saved = repository.save(message);
 
-        // Cadastro conversacional só roda para telefone normalizado SEM usuário
-        // cadastrado. Usuários existentes vão para o parser de gasto na T-013.
-        if (normalizedPhone != null && saved.getUserId() == null) {
+        if (normalizedPhone == null) {
+            return saved;
+        }
+
+        User user = saved.getUserId() != null
+                ? userService.findOrNull(normalizedPhone)
+                : null;
+
+        if (user == null) {
             conversationService.handleAwaitingName(normalizedPhone, content);
+        } else {
+            expenseProcessor.process(user, saved);
         }
 
         return saved;

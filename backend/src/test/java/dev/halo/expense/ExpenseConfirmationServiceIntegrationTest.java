@@ -63,13 +63,16 @@ class ExpenseConfirmationServiceIntegrationTest {
     }
 
     private CategoryGlobal insertGlobal(String name) {
-        CategoryGlobal g = new CategoryGlobal();
-        g.setId(UUID.randomUUID());
-        g.setName(name);
-        g.setIcon("circle");
-        g.setColor("#000000");
-        g.setKeywords(new String[0]);
-        return categoryGlobalRepository.save(g);
+        // Reutiliza se já existe (V4 seed pode ter inserido).
+        return categoryGlobalRepository.findByNameIgnoreCase(name).orElseGet(() -> {
+            CategoryGlobal g = new CategoryGlobal();
+            g.setId(UUID.randomUUID());
+            g.setName(name);
+            g.setIcon("circle");
+            g.setColor("#000000");
+            g.setKeywords(new String[0]);
+            return categoryGlobalRepository.save(g);
+        });
     }
 
     @Test
