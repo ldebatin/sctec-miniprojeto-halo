@@ -58,7 +58,7 @@ class EvolutionWebhookControllerTest {
     void setUp() {
         inboundMessageService = mock(InboundMessageService.class);
         EvolutionWebhookController controller = new EvolutionWebhookController(
-                new EvolutionProperties(API_KEY), inboundMessageService);
+                new EvolutionProperties(API_KEY, null, null, null), inboundMessageService);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 

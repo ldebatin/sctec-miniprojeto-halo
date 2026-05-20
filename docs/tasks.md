@@ -203,10 +203,10 @@
 **Entrega:** fluxo completo: usuário novo recebe pergunta "Qual seu nome?", próxima mensagem dele é salva como nome, conta é criada, mensagem de boas-vindas enviada.
 
 **Critérios de aceitação:**
-- [ ] Primeira mensagem de telefone desconhecido grava `conversation_state` com `state=AWAITING_NAME` e responde via Evolution "Qual seu nome?".
-- [ ] Segunda mensagem cria `user` (`name`, `phone`), deleta `conversation_state`, e envia "Bem-vindo(a), <nome>!".
-- [ ] `conversation_state.expires_at = now() + 15min`; estado expirado é descartado e a próxima mensagem reinicia o fluxo.
-- [ ] Nome com menos de 2 caracteres → reenvia a pergunta.
+- [x] Primeira mensagem de telefone desconhecido grava `conversation_state` com `state=AWAITING_NAME` e responde via Evolution "Qual seu nome?".
+- [x] Segunda mensagem cria `user` (`name`, `phone`), deleta `conversation_state`, e envia "Bem-vindo(a), <nome>!".
+- [x] `conversation_state.expires_at = now() + 15min`; estado expirado é descartado e a próxima mensagem reinicia o fluxo.
+- [x] Nome com menos de 2 caracteres → reenvia a pergunta.
 
 ---
 

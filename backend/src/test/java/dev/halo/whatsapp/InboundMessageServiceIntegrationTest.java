@@ -9,6 +9,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -38,6 +39,12 @@ class InboundMessageServiceIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    // T-011 introduziu o ConversationService que dispara sendText quando o
+    // telefone normaliza mas o usuário ainda não existe. Mock evita chamadas
+    // HTTP reais durante os testes.
+    @MockBean
+    private EvolutionClient evolutionClient;
 
     private static EvolutionPayloadDto payload(String msgId, String jid, String text) {
         return new EvolutionPayloadDto(
