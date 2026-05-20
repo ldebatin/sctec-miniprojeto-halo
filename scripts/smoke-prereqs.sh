@@ -40,19 +40,30 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# ---------- 1. infra/.env ----------
-heading "Carregando infra/.env"
-ENV_FILE="$REPO_ROOT/infra/.env"
-if [[ ! -f "$ENV_FILE" ]]; then
+# ---------- 1. .env (infra + backend) ----------
+heading "Carregando .env"
+INFRA_ENV="$REPO_ROOT/infra/.env"
+BACKEND_ENV="$REPO_ROOT/backend/.env"
+if [[ ! -f "$INFRA_ENV" ]]; then
   err "infra/.env não existe — copie de infra/.env.example e preencha os segredos"
   exit 1
 fi
 set -a
 # shellcheck disable=SC1090
-source "$ENV_FILE"
+source "$INFRA_ENV"
+# backend/.env é opcional para o compose, mas é onde vive
+# EVOLUTION_INSTANCE_TOKEN; quando existir, vars do backend ganham
+# precedência sobre as do infra (por exemplo, EVOLUTION_API_KEY).
+if [[ -f "$BACKEND_ENV" ]]; then
+  # shellcheck disable=SC1090
+  source "$BACKEND_ENV"
+  ok "infra/.env + backend/.env carregados"
+else
+  warn "backend/.env não existe — copie de backend/.env.example para preencher GEMINI_API_KEY e EVOLUTION_INSTANCE_TOKEN"
+fi
 set +a
 EVOLUTION_BASE_URL_CLI="${EVOLUTION_BASE_URL:-http://localhost:${EVOLUTION_HOST_PORT:-8081}}"
-ok "infra/.env carregado (EVOLUTION_BASE_URL=$EVOLUTION_BASE_URL_CLI)"
+ok "EVOLUTION_BASE_URL=$EVOLUTION_BASE_URL_CLI"
 
 # ---------- 2. docker ----------
 heading "Docker"
