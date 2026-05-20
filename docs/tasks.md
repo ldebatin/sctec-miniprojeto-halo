@@ -284,10 +284,10 @@
 **Entrega:** quando `GeminiClient.parseExpense` retorna `null` por erro técnico (não por `NOT_EXPENSE`), ainda assim o gasto é registrado com categoria "Sem categoria", usando heurística simples (regex de número para extrair valor) e a mensagem original como descrição.
 
 **Critérios de aceitação:**
-- [ ] Mensagem como "Mercado 87,30" com IA fora do ar ainda persiste o gasto.
-- [ ] Heurística regex extrai valor decimal (`,` ou `.` como separador).
-- [ ] Se nem o regex acha um valor, a mensagem é considerada `NOT_EXPENSE` e ignorada.
-- [ ] Log de WARN registra que o fallback foi usado.
+- [x] Mensagem como "Mercado 87,30" com IA fora do ar ainda persiste o gasto.
+- [x] Heurística regex extrai valor decimal (`,` ou `.` como separador).
+- [x] Se nem o regex acha um valor, a mensagem é considerada `NOT_EXPENSE` e ignorada.
+- [x] Log de WARN registra que o fallback foi usado.
 
 ---
 
