@@ -113,8 +113,15 @@ class HttpGeminiClientIntegrationTest {
         mockServer.expect(requestTo(ENDPOINT))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(jsonPath("$.generationConfig.temperature").value(0.2))
-                .andExpect(jsonPath("$.generationConfig.maxOutputTokens").value(200))
+                .andExpect(jsonPath("$.generationConfig.maxOutputTokens").value(500))
                 .andExpect(jsonPath("$.generationConfig.responseMimeType").value("application/json"))
+                // Issue #66 — structured output: schema OBJECT com 5 propriedades.
+                .andExpect(jsonPath("$.generationConfig.responseSchema.type").value("OBJECT"))
+                .andExpect(jsonPath("$.generationConfig.responseSchema.properties.description.type").value("STRING"))
+                .andExpect(jsonPath("$.generationConfig.responseSchema.properties.amount.type").value("NUMBER"))
+                .andExpect(jsonPath("$.generationConfig.responseSchema.properties.category_hint.type").value("STRING"))
+                .andExpect(jsonPath("$.generationConfig.responseSchema.properties.occurred_at.type").value("STRING"))
+                .andExpect(jsonPath("$.generationConfig.responseSchema.properties.error.type").value("STRING"))
                 .andExpect(jsonPath("$.contents[0].parts[0].text",
                         Matchers.containsString("Alimentação, Mercado")))
                 .andExpect(jsonPath("$.contents[0].parts[0].text",
