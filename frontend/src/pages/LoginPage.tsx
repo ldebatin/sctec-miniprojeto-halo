@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Navigate, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { requestOtp, verifyOtp } from '../api/auth'
 import { useAuthStore } from '../stores/auth'
+
+const OTP_MAX_ATTEMPTS = 5
+const RESEND_COOLDOWN_SECONDS = 60
 
 // ─── Esquemas Zod ────────────────────────────────────────────────────────────
 // Definidos como schemas de campo para reutilizar no validate do RHF sem o
@@ -64,6 +67,24 @@ export default function LoginPage() {
   const [step, setStep]                     = useState<'phone' | 'otp'>('phone')
   const [normalizedPhone, setNormalizedPhone] = useState('')
   const [apiError, setApiError]             = useState<string | null>(null)
+  const [cooldown, setCooldown]             = useState(0)
+  const [otpAttempts, setOtpAttempts]       = useState(0)
+  const intervalRef                         = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Decrementa o cooldown de reenvio a cada segundo
+  useEffect(() => {
+    if (cooldown <= 0) return
+    intervalRef.current = setInterval(() => {
+      setCooldown((s) => {
+        if (s <= 1) {
+          clearInterval(intervalRef.current!)
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(intervalRef.current!)
+  }, [cooldown])
 
   // Dois formulários independentes — cada step tem seu próprio estado de validação
   const phoneForm = useForm<PhoneForm>({ defaultValues: { phone: '' } })
@@ -79,9 +100,15 @@ export default function LoginPage() {
     try {
       await requestOtp(normalized)
       setNormalizedPhone(normalized)
+      setOtpAttempts(0)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
       setStep('otp')
     } catch (err) {
-      setApiError(extractApiError(err))
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        setApiError('Aguarde 60 segundos antes de solicitar um novo código.')
+      } else {
+        setApiError(extractApiError(err))
+      }
     }
   })
 
@@ -93,14 +120,39 @@ export default function LoginPage() {
       setAuth(accessToken, user)
       navigate('/', { replace: true })
     } catch (err) {
-      setApiError(extractApiError(err))
+      const newAttempts = otpAttempts + 1
+      setOtpAttempts(newAttempts)
+      const remaining = OTP_MAX_ATTEMPTS - newAttempts
+      if (remaining <= 0) {
+        setApiError('Código inválido. Número máximo de tentativas atingido. Solicite um novo código.')
+      } else {
+        setApiError(`Código inválido. ${remaining} tentativa${remaining === 1 ? '' : 's'} restante${remaining === 1 ? '' : 's'}.`)
+      }
     }
   })
 
   // ── Volta para o Step 1 ───────────────────────────────────────────────────
+  async function handleResend() {
+    setApiError(null)
+    otpForm.reset()
+    try {
+      await requestOtp(normalizedPhone)
+      setOtpAttempts(0)
+      setCooldown(RESEND_COOLDOWN_SECONDS)
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 429) {
+        setApiError('Aguarde antes de solicitar um novo código.')
+      } else {
+        setApiError(extractApiError(err))
+      }
+    }
+  }
+
   function handleBack() {
     setStep('phone')
     setApiError(null)
+    setCooldown(0)
+    setOtpAttempts(0)
     otpForm.reset()
   }
 
@@ -248,11 +300,22 @@ export default function LoginPage() {
               {otpForm.formState.isSubmitting ? 'Verificando...' : 'Entrar'}
             </button>
 
-            <div className="flex justify-center mt-4">
+            <div className="flex flex-col items-center gap-2 mt-4">
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={cooldown > 0}
+                className="text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed
+                           text-primary-500 hover:text-primary-600 transition-colors"
+              >
+                {cooldown > 0
+                  ? `Reenviar código (${cooldown}s)`
+                  : 'Reenviar código'}
+              </button>
               <button
                 type="button"
                 onClick={handleBack}
-                className="text-gray-500 text-sm hover:text-gray-700 transition-colors"
+                className="text-gray-400 text-xs hover:text-gray-600 transition-colors"
               >
                 ← Trocar número
               </button>
