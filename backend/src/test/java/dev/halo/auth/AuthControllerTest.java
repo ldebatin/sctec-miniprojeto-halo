@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -126,6 +127,35 @@ class AuthControllerTest {
                 .andExpect(status().isUnauthorized());
 
         verify(jwtService, never()).issueAccessToken(any(), any());
+    }
+
+    // --------------------------------------------------------------------
+    // DELETE /auth/sessions/current (logout, T-022)
+    // --------------------------------------------------------------------
+
+    @Test
+    void logout_chama_revoke_e_limpa_cookie() throws Exception {
+        mvc.perform(delete("/auth/sessions/current")
+                        .cookie(new Cookie("refresh_token", "alguma-coisa")))
+                .andExpect(status().isNoContent())
+                .andExpect(cookie().value("refresh_token", ""))
+                .andExpect(cookie().maxAge("refresh_token", 0))
+                .andExpect(cookie().httpOnly("refresh_token", true))
+                .andExpect(cookie().secure("refresh_token", true))
+                .andExpect(cookie().path("refresh_token", "/auth"))
+                .andExpect(header().string("Set-Cookie", Matchers.containsString("SameSite=Strict")));
+
+        verify(refreshTokenService).revoke("alguma-coisa");
+    }
+
+    @Test
+    void logout_sem_cookie_ainda_devolve_204_e_limpa_cookie() throws Exception {
+        mvc.perform(delete("/auth/sessions/current"))
+                .andExpect(status().isNoContent())
+                .andExpect(cookie().value("refresh_token", ""))
+                .andExpect(cookie().maxAge("refresh_token", 0));
+
+        verify(refreshTokenService).revoke(null);
     }
 
     private User userCom(UUID id) {

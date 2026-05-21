@@ -1,6 +1,7 @@
 package dev.halo.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -130,6 +131,60 @@ class AuthControllerIntegrationTest {
                         .cookie(new Cookie("refresh_token", issued.token())))
                 .andReturn();
         assertThat(result.getResponse().getStatus()).isEqualTo(401);
+    }
+
+    // --------------------------------------------------------------------
+    // DELETE /auth/sessions/current — logout (T-022)
+    // --------------------------------------------------------------------
+
+    @Test
+    void logout_revoga_refresh_e_proxima_chamada_retorna_401() throws Exception {
+        User user = criarUser("+5547800000010");
+        RefreshTokenService.IssuedRefreshToken issued =
+                refreshTokenService.issue(user.getId(), "ua", "ip");
+        String hash = RefreshTokenService.sha256Hex(issued.token());
+
+        MvcResult logout = mvc.perform(delete("/auth/sessions/current")
+                        .cookie(new Cookie("refresh_token", issued.token())))
+                .andReturn();
+
+        assertThat(logout.getResponse().getStatus()).isEqualTo(204);
+        // cookie de limpeza: Max-Age=0, valor vazio
+        String setCookie = logout.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        assertThat(setCookie).contains("refresh_token=").contains("Max-Age=0");
+        // revoked_at foi setado
+        RefreshToken persisted = refreshTokenRepository.findByTokenHash(hash).orElseThrow();
+        assertThat(persisted.getRevokedAt()).isNotNull();
+
+        // próxima chamada com o mesmo refresh deve retornar 401
+        MvcResult retryRefresh = mvc.perform(post("/auth/refresh")
+                        .cookie(new Cookie("refresh_token", issued.token())))
+                .andReturn();
+        assertThat(retryRefresh.getResponse().getStatus()).isEqualTo(401);
+    }
+
+    @Test
+    void logout_e_idempotente_para_cookie_ja_revogado() throws Exception {
+        User user = criarUser("+5547800000011");
+        RefreshTokenService.IssuedRefreshToken issued =
+                refreshTokenService.issue(user.getId(), "ua", "ip");
+
+        // primeira chamada: 204
+        mvc.perform(delete("/auth/sessions/current")
+                        .cookie(new Cookie("refresh_token", issued.token())))
+                .andReturn();
+
+        // segunda chamada (token já revogado): ainda 204
+        MvcResult second = mvc.perform(delete("/auth/sessions/current")
+                        .cookie(new Cookie("refresh_token", issued.token())))
+                .andReturn();
+        assertThat(second.getResponse().getStatus()).isEqualTo(204);
+    }
+
+    @Test
+    void logout_sem_cookie_retorna_204() throws Exception {
+        MvcResult result = mvc.perform(delete("/auth/sessions/current")).andReturn();
+        assertThat(result.getResponse().getStatus()).isEqualTo(204);
     }
 
     @Test

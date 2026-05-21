@@ -8,19 +8,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Rota de rotação de sessão (T-021, RF-09): {@code POST /auth/refresh}.
+ * Rotas de sessão do RF-09/RF-11:
  *
- * Lê o cookie {@code refresh_token}, valida (existe, não revogado, não
- * expirado), revoga o anterior, emite um novo refresh + novo access JWT
- * e devolve o access token no body com o novo refresh em cookie.
+ * <ul>
+ *   <li>{@code POST /auth/refresh} (T-021) — rotaciona o refresh token
+ *       no cookie e emite novo access JWT.</li>
+ *   <li>{@code DELETE /auth/sessions/current} (T-022) — logout. Revoga
+ *       o refresh token associado ao cookie e devolve cookie com
+ *       {@code Max-Age=0} para o navegador descartar.</li>
+ * </ul>
  *
- * Esta task (T-021) só faz o caminho feliz + 401 para qualquer falha.
- * Logout (revogar a sessão atual sem rotacionar) entra em T-022.
+ * Logout é idempotente do ponto de vista do cliente: cookie ausente,
+ * inválido, expirado ou já revogado todos respondem 204 — o objetivo é
+ * deixar o cliente sem credencial, não falhar em estados intermediários.
  */
 @RestController
 @RequestMapping("/auth")
@@ -66,5 +72,16 @@ public class AuthController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(body);
+    }
+
+    @DeleteMapping("/sessions/current")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        String plaintext = AuthCookies.readRefreshCookie(request);
+        refreshTokenService.revoke(plaintext);
+
+        ResponseCookie cookie = AuthCookies.expiredRefreshCookie();
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .build();
     }
 }

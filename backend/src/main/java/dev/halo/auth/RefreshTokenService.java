@@ -66,6 +66,25 @@ public class RefreshTokenService {
     }
 
     /**
+     * Revoga o refresh token associado ao plaintext recebido no cookie
+     * (T-022, RF-11). Idempotente: tokens ausentes, desconhecidos, já
+     * revogados ou expirados são tratados como no-op — logout sempre
+     * sucede do ponto de vista do cliente.
+     */
+    @Transactional
+    public void revoke(String plaintext) {
+        if (plaintext == null || plaintext.isBlank()) {
+            return;
+        }
+        repository.findByTokenHash(sha256Hex(plaintext)).ifPresent(token -> {
+            if (token.getRevokedAt() == null) {
+                token.setRevokedAt(Instant.now());
+                repository.save(token);
+            }
+        });
+    }
+
+    /**
      * Emite um novo refresh token, persiste o hash + metadados e devolve
      * o plaintext (para o cookie httpOnly).
      */
