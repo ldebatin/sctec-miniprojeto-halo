@@ -47,4 +47,29 @@ class HttpGeminiClientUnitTest {
         String prompt = HttpGeminiClient.buildPrompt("Uber 25", List.of());
         assertThat(prompt).contains("(nenhuma)");
     }
+
+    @Test
+    void redactNumbers_mascara_valores_inteiros_e_decimais() {
+        String raw = "{\"description\":\"Mercado\",\"amount\":87.30,\"occurred_at\":\"2026-05-18\"}";
+        String masked = HttpGeminiClient.redactNumbers(raw);
+        assertThat(masked)
+                .contains("\"description\":\"Mercado\"")
+                .doesNotContain("87.30")
+                .doesNotContain("2026")
+                .contains("<num>");
+    }
+
+    @Test
+    void redactNumbers_trunca_em_RAW_LOG_LIMIT() {
+        String raw = "abc".repeat(200); // 600 chars
+        String masked = HttpGeminiClient.redactNumbers(raw);
+        // RAW_LOG_LIMIT chars + reticências
+        assertThat(masked).hasSize(HttpGeminiClient.RAW_LOG_LIMIT + 3);
+        assertThat(masked).endsWith("...");
+    }
+
+    @Test
+    void redactNumbers_devolve_marcador_para_nulo() {
+        assertThat(HttpGeminiClient.redactNumbers(null)).isEqualTo("<null>");
+    }
 }

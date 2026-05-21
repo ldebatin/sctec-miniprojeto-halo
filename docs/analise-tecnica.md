@@ -405,7 +405,9 @@ Regras:
 - Categorias válidas: <lista global + customizadas do usuário>.
 Mensagem: """<texto do usuário>"""
 ```
-Configurações: `response_mime_type=application/json`, `temperature=0.2`, `max_output_tokens=200`.
+Configurações: `responseMimeType=application/json` + `responseSchema` (OBJECT com 5 propriedades nullable — `description`, `amount`, `category_hint`, `occurred_at`, `error`), `temperature=0.2`, `maxOutputTokens=500`.
+
+> **Por que `responseSchema`?** Observamos empiricamente (Issue #66) que `responseMimeType=application/json` sozinho não impede prosa antes do JSON ("Here is the JSON: {...}"), e `maxOutputTokens=200` truncava respostas no meio. O schema obriga o modelo a emitir um objeto schema-compliante; o bump pra 500 absorve respostas levemente maiores sem custo adicional perceptível.
 
 ### 9.3 Geração do gráfico — atenção
 **Trade-off técnico importante**: o Gemini *consegue* gerar imagens (via modelos como `gemini-2.5-flash-image` / Imagen), mas **gráficos estatísticos com números exatos a partir de dados tabulares têm baixa confiabilidade** — labels e valores frequentemente saem com pequenas distorções.
@@ -623,7 +625,7 @@ VITE_API_BASE_URL=https://api.halo.<domain>
 | Risco | Probabilidade | Impacto | Mitigação |
 |---|---|---|---|
 | Evolution GO desconecta (sessão WhatsApp cai) | Média | Alto | Healthcheck dedicado + notificação por e-mail; documentar passo de reconexão. |
-| Gemini retorna JSON inválido | Média | Médio | `response_mime_type=application/json` + parser tolerante + fallback "Sem categoria". |
+| Gemini retorna JSON inválido | Baixa | Médio | `responseMimeType=application/json` + `responseSchema` (structured output, §9.2) + parser tolerante + fallback "Sem categoria". Em INVALID_JSON o raw é logado (com números mascarados) pra diagnóstico. |
 | Gráfico gerado por IA com valores errados | Alta (Opção B) | Médio | Default em Opção A (determinística). |
 | OTP por SMS/WhatsApp não chega | Baixa | Alto | Botão "reenviar" (com cooldown); logar falhas Evolution. |
 | Custo Gemini cresce com adoção | Baixa | Médio | Cache por descrição normalizada (§9.4); alerta de orçamento na conta Google. |

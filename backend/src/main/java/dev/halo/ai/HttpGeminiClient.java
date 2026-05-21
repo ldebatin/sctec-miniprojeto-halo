@@ -7,7 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -25,6 +27,13 @@ import org.springframework.web.client.RestClientException;
  * {@code usageMetadata} da resposta; quando não há resposta (erro HTTP), os
  * contadores ficam em zero.
  *
+ * <p>Issue #66: o request usa Gemini Structured Output ({@code responseSchema})
+ * para forçar o modelo a devolver JSON schema-compliante — eliminando prosa
+ * antes do JSON ("Here is the JSON: {...}") que o {@code responseMimeType}
+ * sozinho não impedia. {@link #MAX_OUTPUT_TOKENS} subiu de 200 → 500 pra
+ * absorver respostas levemente maiores sem truncamento. Em INVALID_JSON o
+ * raw é logado (com números mascarados pra não vazar valores) pra diagnóstico.
+ *
  * Cache de classificação por descrição entra em T-043.
  */
 @Component
@@ -35,7 +44,13 @@ public class HttpGeminiClient implements GeminiClient {
     static final int MAX_INPUT_CHARS = 500;
 
     static final double TEMPERATURE = 0.2;
-    static final int MAX_OUTPUT_TOKENS = 200;
+    static final int MAX_OUTPUT_TOKENS = 500;
+
+    /** §9.2 — schema da resposta. Todos os campos nullable para permitir o caminho NOT_EXPENSE. */
+    private static final Schema RESPONSE_SCHEMA = buildResponseSchema();
+
+    /** Quantos chars do raw do Gemini incluímos no log de INVALID_JSON. */
+    static final int RAW_LOG_LIMIT = 200;
 
     private final GeminiProperties properties;
     private final RestClient restClient;
@@ -62,7 +77,7 @@ public class HttpGeminiClient implements GeminiClient {
         String prompt = buildPrompt(truncate(text), userCategoryNames);
         GenerateContentRequest body = new GenerateContentRequest(
                 List.of(new Content(List.of(new Part(prompt)))),
-                new GenerationConfig(TEMPERATURE, MAX_OUTPUT_TOKENS, "application/json")
+                new GenerationConfig(TEMPERATURE, MAX_OUTPUT_TOKENS, "application/json", RESPONSE_SCHEMA)
         );
 
         long startedAt = System.currentTimeMillis();
@@ -127,6 +142,38 @@ public class HttpGeminiClient implements GeminiClient {
                 """.formatted(categoryList, userText);
     }
 
+    /**
+     * Constrói o schema de saída usado pelo Gemini Structured Output (Issue #66).
+     * Todos os campos são {@code nullable} para acomodar os dois ramos válidos:
+     * <ul>
+     *   <li>Gasto reconhecido → {@code description}, {@code amount}, {@code category_hint},
+     *       {@code occurred_at} preenchidos; {@code error} nulo.</li>
+     *   <li>Mensagem não-gasto → {@code error="NOT_EXPENSE"}; demais campos nulos.</li>
+     * </ul>
+     */
+    private static Schema buildResponseSchema() {
+        Map<String, Schema> properties = new LinkedHashMap<>();
+        properties.put("description", new Schema("STRING", null, true, "Descrição curta do gasto"));
+        properties.put("amount", new Schema("NUMBER", null, true, "Valor em reais (ponto como decimal)"));
+        properties.put("category_hint", new Schema("STRING", null, true, "Uma das categorias fornecidas no prompt"));
+        properties.put("occurred_at", new Schema("STRING", null, true, "Data ISO YYYY-MM-DD ou null se não informada"));
+        properties.put("error", new Schema("STRING", null, true, "Use 'NOT_EXPENSE' quando a mensagem não descreve um gasto"));
+        return new Schema("OBJECT", properties, null, null);
+    }
+
+    /**
+     * Mascara qualquer sequência numérica do raw antes de logar — Gemini ecoa
+     * valores recebidos no prompt, então o raw pode conter o gasto do usuário.
+     * Mantém a estrutura JSON legível pra diagnóstico (chaves, palavras-chave).
+     */
+    static String redactNumbers(String raw) {
+        if (raw == null) return "<null>";
+        String prefix = raw.length() > RAW_LOG_LIMIT
+                ? raw.substring(0, RAW_LOG_LIMIT) + "..."
+                : raw;
+        return prefix.replaceAll("\\d+([.,]\\d+)?", "<num>");
+    }
+
     private ParseOutcome parseJson(String raw) {
         try {
             ExpenseJson dto = objectMapper.readValue(raw, ExpenseJson.class);
@@ -136,7 +183,7 @@ public class HttpGeminiClient implements GeminiClient {
                 return new ParseOutcome(AiLogStatus.OK, null);
             }
             if (dto.description() == null || dto.amount() == null) {
-                log.warn("JSON do Gemini incompleto: {}", raw);
+                log.warn("JSON do Gemini incompleto raw={}", redactNumbers(raw));
                 return new ParseOutcome(AiLogStatus.INVALID_JSON, null);
             }
             LocalDate occurredAt = parseDate(dto.occurredAt());
@@ -147,7 +194,7 @@ public class HttpGeminiClient implements GeminiClient {
                     occurredAt
             ));
         } catch (Exception e) {
-            log.warn("JSON do Gemini inválido: {}", e.getMessage());
+            log.warn("JSON do Gemini inválido motivo='{}' raw={}", e.getMessage(), redactNumbers(raw));
             return new ParseOutcome(AiLogStatus.INVALID_JSON, null);
         }
     }
@@ -198,10 +245,25 @@ public class HttpGeminiClient implements GeminiClient {
 
     private record Part(String text) {}
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private record GenerationConfig(
             double temperature,
             int maxOutputTokens,
-            String responseMimeType
+            String responseMimeType,
+            Schema responseSchema
+    ) {}
+
+    /**
+     * Subset do OpenAPI Schema aceito pelo Gemini Structured Output. Apenas
+     * os campos que usamos. Tipos são UPPERCASE conforme exige a API
+     * ({@code STRING}, {@code NUMBER}, {@code OBJECT} etc.).
+     */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    record Schema(
+            String type,
+            Map<String, Schema> properties,
+            Boolean nullable,
+            String description
     ) {}
 
     private record GenerateContentResponse(
