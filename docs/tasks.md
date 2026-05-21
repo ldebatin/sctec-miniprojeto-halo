@@ -392,9 +392,9 @@
 **Entrega:** endpoint que revoga o refresh token associado ao cookie e limpa o cookie.
 
 **Critérios de aceitação:**
-- [ ] `refresh_tokens.revoked_at` setado.
-- [ ] Cookie de refresh limpo na resposta.
-- [ ] Próxima chamada com o mesmo refresh retorna 401.
+- [x] `refresh_tokens.revoked_at` setado.
+- [x] Cookie de refresh limpo na resposta.
+- [x] Próxima chamada com o mesmo refresh retorna 401.
 
 ---
 

@@ -176,6 +176,67 @@ class RefreshTokenServiceTest {
         verify(repo, never()).save(any());
     }
 
+    // ----------------------------------------------------------------
+    // revoke (T-022) — idempotente
+    // ----------------------------------------------------------------
+
+    @Test
+    void revoke_marca_revoked_at_quando_token_existe_e_esta_ativo() {
+        RefreshTokenRepository repo = mock(RefreshTokenRepository.class);
+        String plaintext = UUID.randomUUID().toString();
+        RefreshToken existing = entityCom(UUID.randomUUID(), plaintext,
+                Instant.now().plusSeconds(60), null);
+        when(repo.findByTokenHash(RefreshTokenService.sha256Hex(plaintext)))
+                .thenReturn(Optional.of(existing));
+        RefreshTokenService service = new RefreshTokenService(repo);
+
+        service.revoke(plaintext);
+
+        assertThat(existing.getRevokedAt()).isNotNull();
+        verify(repo).save(existing);
+    }
+
+    @Test
+    void revoke_e_no_op_para_token_ja_revogado() {
+        RefreshTokenRepository repo = mock(RefreshTokenRepository.class);
+        String plaintext = UUID.randomUUID().toString();
+        Instant alreadyRevokedAt = Instant.now().minusSeconds(60);
+        RefreshToken existing = entityCom(UUID.randomUUID(), plaintext,
+                Instant.now().plusSeconds(60), alreadyRevokedAt);
+        when(repo.findByTokenHash(RefreshTokenService.sha256Hex(plaintext)))
+                .thenReturn(Optional.of(existing));
+        RefreshTokenService service = new RefreshTokenService(repo);
+
+        service.revoke(plaintext);
+
+        assertThat(existing.getRevokedAt()).isEqualTo(alreadyRevokedAt);
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void revoke_e_no_op_para_token_desconhecido() {
+        RefreshTokenRepository repo = mock(RefreshTokenRepository.class);
+        when(repo.findByTokenHash(any())).thenReturn(Optional.empty());
+        RefreshTokenService service = new RefreshTokenService(repo);
+
+        service.revoke("desconhecido");
+
+        verify(repo, never()).save(any());
+    }
+
+    @Test
+    void revoke_e_no_op_para_plaintext_nulo_ou_vazio() {
+        RefreshTokenRepository repo = mock(RefreshTokenRepository.class);
+        RefreshTokenService service = new RefreshTokenService(repo);
+
+        service.revoke(null);
+        service.revoke("");
+        service.revoke("   ");
+
+        verify(repo, never()).findByTokenHash(any());
+        verify(repo, never()).save(any());
+    }
+
     private RefreshToken entityCom(UUID userId, String plaintext, Instant expiresAt, Instant revokedAt) {
         RefreshToken rt = new RefreshToken();
         rt.setId(UUID.randomUUID());

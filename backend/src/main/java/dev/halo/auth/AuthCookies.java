@@ -32,6 +32,14 @@ final class AuthCookies {
     }
 
     /**
+     * Cookie de "limpeza" usado no logout (T-022): mesmo nome/path, valor
+     * vazio e {@code Max-Age=0} para que o navegador descarte imediatamente.
+     */
+    static ResponseCookie expiredRefreshCookie() {
+        return buildRefreshCookie("", Duration.ZERO);
+    }
+
+    /**
      * Resolve o IP do cliente respeitando proxy reverso. Confiamos em
      * {@code X-Forwarded-For} porque o backend só é exposto via
      * Traefik/nginx em produção; em dev/teste o header não existe e
