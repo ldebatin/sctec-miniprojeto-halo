@@ -73,6 +73,16 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
 
 halo:
+  auth:
+    jwt:
+      # Segredo HMAC-SHA256 do access token (analise-tecnica §10.2). Base64
+      # de pelo menos 32 bytes. Default só vale para dev/teste — em
+      # produção é obrigatório injetar via HALO_AUTH_JWT_SECRET.
+      secret: ${HALO_AUTH_JWT_SECRET:ZGV2LWp3dC1zZWNyZXQtY2hhbmdlLW1lLWluLXByb2R1Y3Rpb24tMDAxMQ==}
+      # TTL do access token. Refresh token tem 30 dias e é configurado em
+      # RefreshTokenService (não tem motivo para sobrescrever em runtime).
+      access-token-ttl: PT15M
+      issuer: halo
   gemini:
     # Chave da API Google AI Studio (lida do .env em dev).
     api-key: ${GEMINI_API_KEY:}
