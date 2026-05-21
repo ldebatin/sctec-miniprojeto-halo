@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,7 +83,19 @@ public class InboundMessageService {
                     msgId, rawJid, e.getMessage());
         }
 
-        WhatsappMessage saved = repository.save(message);
+        // saveAndFlush força o INSERT antes de qualquer efeito colateral
+        // (envio de WhatsApp). O Evolution Go entrega o mesmo webhook 2x
+        // simultaneamente; sem flush imediato, ambas as threads passam o
+        // pre-check, enviam confirmações duplicadas, e só a segunda falha
+        // no commit. A UNIQUE em evolution_msg_id captura aqui — convertemos
+        // em DuplicateWebhookException, que o controller mapeia pra 200 OK.
+        WhatsappMessage saved;
+        try {
+            saved = repository.saveAndFlush(message);
+        } catch (DataIntegrityViolationException e) {
+            log.info("Webhook duplicado descartado msgId={}", msgId);
+            throw new DuplicateWebhookException(msgId);
+        }
 
         if (normalizedPhone == null) {
             return saved;

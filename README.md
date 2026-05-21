@@ -89,15 +89,16 @@ EVOLUTION_CLIENT_NAME=halo
 
 # GLOBAL_API_KEY do Evolution. GERE COM:
 #   openssl rand -hex 16
-# Esse é o token usado no header `apikey` para ops globais
-# (criar/listar/apagar instâncias) E o segredo compartilhado com o backend.
+# Token usado no header `apikey` para ops globais do Evolution (criar/listar/apagar
+# instâncias). NÃO tem relação com o webhook que CHEGA no backend — esse não tem
+# auth dedicada (Evolution Go não envia headers em webhooks de saída).
 EVOLUTION_API_KEY=cole-aqui-o-resultado-do-openssl
 
 # Porta exposta no host. Default 8080 colide com o backend Spring Boot.
 # Se for rodar os dois ao mesmo tempo, mude para 8088 e ajuste o backend.
 EVOLUTION_HOST_PORT=8080
 
-# URL pública do backend para receber webhooks (deixe vazio em dev sem túnel)
+# URL pública do backend para receber webhooks (deixe vazio em dev sem túnel).
 EVOLUTION_WEBHOOK_URL=
 ```
 
@@ -111,9 +112,10 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/halo
 SPRING_DATASOURCE_USERNAME=halo
 SPRING_DATASOURCE_PASSWORD=halo
 
-# DEVE SER O MESMO valor de EVOLUTION_API_KEY do infra/.env
-# É lido pelo backend como halo.evolution.api-key e usado para validar
-# os webhooks recebidos do Evolution Go.
+# DEVE SER O MESMO valor de EVOLUTION_API_KEY do infra/.env. Lido pelo backend
+# como halo.evolution.api-key e usado nas chamadas de SAÍDA aos endpoints
+# globais do Evolution (/instance/all etc.). O webhook que CHEGA no backend
+# não usa auth dedicada.
 EVOLUTION_API_KEY=cole-aqui-o-mesmo-valor-do-infra
 ```
 
@@ -236,7 +238,7 @@ cd backend
 export JAVA_HOME=/usr/lib/jvm/java-21-amazon-corretto
 export PATH=$JAVA_HOME/bin:$PATH
 
-# Vars do banco + apikey do webhook (mesmo valor do EVOLUTION_API_KEY)
+# Vars do banco + segredos do Evolution (mesmos valores do infra/.env)
 export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/halo
 export SPRING_DATASOURCE_USERNAME=halo
 export SPRING_DATASOURCE_PASSWORD=halo
@@ -262,8 +264,7 @@ curl -s http://localhost:8080/actuator/health
 #### Testando o webhook localmente
 
 ```bash
-EVO_KEY=<seu-EVOLUTION_API_KEY>
-curl -sS -X POST -H "Content-Type: application/json" -H "apikey: $EVO_KEY" \
+curl -sS -X POST -H "Content-Type: application/json" \
   http://localhost:8080/webhooks/evolution \
   -d '{
         "event":"messages.upsert",
@@ -278,7 +279,7 @@ curl -sS -X POST -H "Content-Type: application/json" -H "apikey: $EVO_KEY" \
 # Esperado: 200 OK
 ```
 
-Sem o header `apikey` ou com valor errado → 401 (T-008).
+O endpoint **não tem auth dedicada** — o Evolution Go self-hosted não envia headers de auth em webhooks de saída (issue upstream #1933 closed as not-planned). Proteção é por rede / reverse proxy à frente do backend.
 
 ### 7) Rodar o frontend
 
@@ -304,13 +305,15 @@ O Evolution Go tem **dois níveis de autenticação**, ambos no header `apikey` 
 
 Mandar o token errado em qualquer um devolve `{"error":"not authorized"}`.
 
+Para os webhooks que o Evolution **envia** ao backend Halo, **não há auth dedicada** — o Evolution Go self-hosted não envia auth em webhooks de saída (issue upstream #1933 closed as not-planned). O endpoint `POST /webhooks/evolution` fica aberto; proteção é por rede / reverse proxy à frente do backend.
+
 ### Onde cada token entra
 
 | Token | Lido por | Variável |
 |---|---|---|
 | `GLOBAL_API_KEY` | Compose do Evolution Go | `EVOLUTION_API_KEY` em `infra/.env` |
-| `GLOBAL_API_KEY` (mesmo valor) | Backend Halo — valida webhooks | Env `EVOLUTION_API_KEY` lida como `halo.evolution.api-key` no `application.yml` |
-| `INSTANCE_TOKEN` (gerado no `instance/create`) | Backend Halo — enviar mensagens | Vai entrar em T-012 como `EVOLUTION_INSTANCE_TOKEN` |
+| `GLOBAL_API_KEY` (mesmo valor) | Backend Halo — chama endpoints globais | `EVOLUTION_API_KEY` em `backend/.env` (lida como `halo.evolution.api-key`) |
+| `INSTANCE_TOKEN` (gerado no `instance/create`) | Backend Halo — enviar mensagens | `EVOLUTION_INSTANCE_TOKEN` em `backend/.env` |
 
 **Boas práticas:**
 - Gere a `EVOLUTION_API_KEY` com `openssl rand -hex 16` — qualquer valor longo serve.

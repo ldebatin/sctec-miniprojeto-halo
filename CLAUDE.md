@@ -120,7 +120,8 @@ Java root package is `dev.halo`. Modules planned/in-progress:
 ### Security model
 `common/security/SecurityConfig` is stateless (no sessions), CSRF disabled (token APIs), with HTTP Basic for placeholder authenticated routes. Public routes today:
 - `/actuator/health/**`, `/actuator/info`
-- `/webhooks/**` — **webhooks authenticate themselves via the `apikey` header**, not Spring Security. The controller uses `MessageDigest.isEqual` for constant-time comparison against `halo.evolution.api-key`.
+- `/webhooks/**` — **endpoint SEM auth dedicada**. O design inicial (T-008) era header `apikey`, mas o Evolution Go self-hosted não envia auth em webhooks de saída (issue upstream #1933 closed as not-planned), e mover o segredo pro path também não emplacou. A proteção real fica a cargo de rede / reverse proxy à frente do backend (analise-tecnica.md §10.3).
+- `/error` — dispatch interno do Spring (forward em 404/405). Sem liberar, um GET no webhook cai em `httpBasic` e o navegador pede senha.
 
 ### Evolution Go — modelo de auth em 2 níveis ⚠
 
@@ -133,9 +134,9 @@ Descoberta operacional importante (validada em T-006):
 
 Mandar a `GLOBAL_API_KEY` em endpoints por-instância devolve `{"error":"not authorized"}`. Mandar o instance token em endpoints globais também falha. Os dois headers se chamam `apikey` — só o valor muda.
 
-O webhook que **recebe** eventos do Evolution Go (`POST /webhooks/evolution` no backend Halo) usa a **`GLOBAL_API_KEY` compartilhada** — o mesmo valor do `EVOLUTION_API_KEY` em `infra/.env`, lido pelo backend como `halo.evolution.api-key`. Esse é o único token relevante para a T-008.
+O webhook que **recebe** eventos do Evolution Go (`POST /webhooks/evolution` no backend Halo) **não tem auth dedicada** — o Evolution Go self-hosted não envia auth em webhooks de saída (issue upstream #1933 closed as not-planned). Proteção é por rede / reverse proxy à frente do backend.
 
-O **instance token** vai precisar entrar como secret separado quando o backend começar a **enviar** mensagens (T-012). Provável nova variável: `EVOLUTION_INSTANCE_TOKEN`.
+O **instance token** entrou em T-012 como `EVOLUTION_INSTANCE_TOKEN` — é o que o backend usa pra ENVIAR mensagens (`/send/text`).
 
 ### Persistence
 - **Flyway** migrations in `backend/src/main/resources/db/migration/` (currently `V1__init.sql`). `spring.jpa.hibernate.ddl-auto=validate` — the schema is owned by Flyway, JPA only checks it matches.

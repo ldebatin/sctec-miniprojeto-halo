@@ -338,28 +338,42 @@ sequenceDiagram
 ### 8.1 Configuração da instância
 - Uma única instância (`halo-bot`) criada via API Evolution.
 - QR code escaneado pelo operador uma vez (número dedicado).
-- Webhook apontando para `https://api.halo.dev/webhooks/evolution`.
+- Webhook apontando para `https://api.halo.dev/webhooks/evolution` (sem auth dedicada — Evolution Go não envia headers de auth em webhooks de saída; proteção por rede/reverse proxy, ver §10.3).
 - Eventos assinados: `messages.upsert` (entrada) e opcionalmente `messages.update` (status de entrega).
 
 ### 8.2 Contrato do Webhook (recepção)
-Payload esperado (resumo do que importa):
+
+O Evolution Go envia um envelope Baileys / PascalCase (validado empiricamente em campo — diferente do Evolution API Node v2 que tinha sido especulado inicialmente). Resumo do que importa:
+
 ```json
 {
-  "event": "messages.upsert",
-  "instance": "halo-bot",
+  "event": "Message",
+  "instanceName": "halo-bot",
+  "instanceId": "9b02de74-...",
+  "instanceToken": "tok-...",
   "data": {
-    "key": { "id": "ABCD123", "remoteJid": "5547999999999@s.whatsapp.net", "fromMe": false },
-    "message": { "conversation": "Mercado 87,30" },
-    "messageTimestamp": 1716042000,
-    "pushName": "Maria"
+    "Info": {
+      "ID": "ABCD123",
+      "Chat": "5547999999999@s.whatsapp.net",
+      "Sender": "5547999999999@s.whatsapp.net",
+      "IsFromMe": false,
+      "IsGroup": false,
+      "PushName": "Maria",
+      "Timestamp": "2026-05-20T21:28:23-03:00",
+      "Type": "text"
+    },
+    "Message": { "conversation": "Mercado 87,30" }
   }
 }
 ```
+
 Backend deve:
-- Validar header `apikey` (segredo compartilhado).
-- Ignorar `fromMe=true`.
-- Extrair telefone (`remoteJid` antes do `@`, normalizar para E.164).
-- Usar `data.key.id` como `evolution_msg_id` para idempotência.
+- **Não tentar autenticar** (Evolution Go self-hosted não envia auth em webhooks de saída — ver §10.3).
+- Ignorar `Info.IsFromMe=true`.
+- Extrair telefone (`Info.Chat` antes do `@`, normalizar para E.164).
+- Usar `Info.ID` como `evolution_msg_id` para idempotência.
+
+> Implementação: `EvolutionGoWebhookPayload` modela este wire format; `toCanonical()` converte para o DTO interno `EvolutionPayloadDto` consumido pelo `InboundMessageService`.
 
 ### 8.3 Envio de mensagem
 - `POST /message/sendText/{instance}` para texto.
@@ -437,7 +451,7 @@ Duas abordagens viáveis, em ordem de recomendação:
 - HTTPS obrigatório em produção (Traefik + Let's Encrypt).
 - Headers de segurança: HSTS, CSP, X-Frame-Options, Referrer-Policy.
 - CORS restritivo (apenas origin do frontend).
-- Webhook do Evolution: validação por **API key compartilhada** em header `apikey` + **IP allowlist** se possível (Evolution roda na mesma VPS, então pode usar IP interno docker).
+- Webhook do Evolution: **sem auth dedicada no endpoint** — o Evolution Go self-hosted não envia headers de auth em webhooks de saída (issue upstream #1933 da Evolution API, closed as not-planned), e tentativas de mover o segredo para o path da URL não funcionaram em campo. Proteção é por **rede** (Evolution roda na mesma VPS, IP interno docker) + **reverse proxy** (Traefik/nginx restringe origem do POST). *Histórico:* o design original previa header `apikey` — o T-008 entregou validação header-based, mas foi removida quando o Evolution Go real começou a chamar e nunca enviou o header.
 - Logs **não** podem conter código OTP, mensagens completas com valores sensíveis, ou tokens JWT — apenas hashes/prefixos.
 
 ---
@@ -446,7 +460,7 @@ Duas abordagens viáveis, em ordem de recomendação:
 
 | Método | Rota | Descrição | Auth |
 |---|---|---|---|
-| POST | `/webhooks/evolution` | Recebe eventos do WhatsApp | apikey |
+| POST | `/webhooks/evolution` | Recebe eventos do WhatsApp | sem auth dedicada (proteção por rede/reverse proxy — ver §10.3) |
 | POST | `/auth/otp/request` | Envia OTP via WhatsApp | público (rate-limited) |
 | POST | `/auth/otp/verify` | Troca OTP por tokens | público |
 | POST | `/auth/refresh` | Renova access token | refresh cookie |
@@ -540,8 +554,10 @@ JWT_REFRESH_TTL=P30D
 
 EVOLUTION_BASE_URL=http://evolution-go:8080
 EVOLUTION_INSTANCE=halo-bot
-EVOLUTION_API_KEY=<secret>
-EVOLUTION_WEBHOOK_SECRET=<secret>
+EVOLUTION_INSTANCE_TOKEN=<secret>            # endpoints por-instância (/send/text etc.)
+EVOLUTION_API_KEY=<secret>                   # GLOBAL_API_KEY do Evolution (endpoints globais)
+# Webhook que CHEGA no backend é POST /webhooks/evolution SEM auth dedicada
+# (Evolution Go não envia headers de auth em webhooks de saída — ver §10.3).
 
 GEMINI_API_KEY=<secret>
 GEMINI_MODEL_FAST=gemini-2.5-flash
