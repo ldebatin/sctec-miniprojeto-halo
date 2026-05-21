@@ -12,8 +12,6 @@ import axios from 'axios'
 
 dayjs.locale('pt-br')
 
-const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-
 // ─── Esquema de validação ─────────────────────────────────────────────────────
 
 const schema = z.object({
