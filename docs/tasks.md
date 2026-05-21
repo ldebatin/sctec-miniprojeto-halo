@@ -422,11 +422,11 @@
 **Entrega:** endpoints `GET /expenses` (paginado + filtros), `POST /expenses`, `GET /expenses/{id}`, `PATCH /expenses/{id}`, `DELETE /expenses/{id}` (soft delete).
 
 **Critérios de aceitação:**
-- [ ] `GET /expenses` aceita query params: `from`, `to`, `category_id`, `q` (busca em description), `page`, `size`. Ordena por `occurred_at desc`.
-- [ ] `POST /expenses` valida: description (1-200 chars), amount > 0, category_id existente para o user, occurred_at obrigatório. `source = 'WEB'`.
-- [ ] `PATCH /expenses/{id}` aceita os mesmos campos do POST como opcionais; verifica que o gasto pertence ao user.
-- [ ] `DELETE /expenses/{id}` faz soft delete (`deleted_at = now()`); gastos deletados não aparecem em GET.
-- [ ] Todas as rotas exigem JWT; tentativa de acessar gasto de outro user retorna 404 (não 403, para não vazar existência).
+- [x] `GET /expenses` aceita query params: `from`, `to`, `category_id`, `q` (busca em description), `page`, `size`. Ordena por `occurred_at desc`.
+- [x] `POST /expenses` valida: description (1-200 chars), amount > 0, category_id existente para o user, occurred_at obrigatório. `source = 'WEB'`.
+- [x] `PATCH /expenses/{id}` aceita os mesmos campos do POST como opcionais; verifica que o gasto pertence ao user.
+- [x] `DELETE /expenses/{id}` faz soft delete (`deleted_at = now()`); gastos deletados não aparecem em GET.
+- [x] Todas as rotas exigem JWT; tentativa de acessar gasto de outro user retorna 404 (não 403, para não vazar existência).
 
 ---
 
