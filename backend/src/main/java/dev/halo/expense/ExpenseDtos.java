@@ -6,15 +6,14 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * DTOs HTTP do {@code /expenses} (RF-05, RF-13, RF-14 — T-024).
+ * DTOs de requisição HTTP do {@code /expenses} (RF-05, RF-13, RF-14 — T-024).
  *
- * Os DTOs ficam num único arquivo para manter a vizinhança visível: as
- * regras de validação do POST e do PATCH evoluem juntas.
+ * A resposta foi extraída para {@link ExpenseResponse} (público) porque
+ * é reusada por outros módulos como {@code report/} em T-039.
  */
 final class ExpenseDtos {
 
@@ -39,28 +38,4 @@ final class ExpenseDtos {
             UUID categoryId,
             @JsonFormat(pattern = "yyyy-MM-dd") LocalDate occurredAt
     ) {}
-
-    /** Representação devolvida em todas as rotas de leitura/escrita. */
-    record Response(
-            UUID id,
-            String description,
-            BigDecimal amount,
-            UUID categoryId,
-            LocalDate occurredAt,
-            ExpenseSource source,
-            Instant createdAt,
-            Instant updatedAt
-    ) {
-        static Response from(Expense e) {
-            return new Response(
-                    e.getId(),
-                    e.getDescription(),
-                    e.getAmount(),
-                    e.getCategoryId(),
-                    e.getOccurredAt(),
-                    e.getSource(),
-                    e.getCreatedAt(),
-                    e.getUpdatedAt());
-        }
-    }
 }
