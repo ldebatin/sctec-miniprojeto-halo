@@ -21,6 +21,7 @@ export interface Expense {
   category?: Category
   occurredAt: string
   source: 'WHATSAPP' | 'WEB'
+  rawMessage?: string
   createdAt: string
 }
 

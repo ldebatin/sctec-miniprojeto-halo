@@ -182,15 +182,21 @@ export default function ExpenseDetailPage() {
 
         {/* Badge de origem */}
         <div className="flex items-center gap-2">
-          <span
-            className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500"
-          >
+          <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
             {expense.source === 'WHATSAPP' ? 'WhatsApp' : 'Web'}
           </span>
           <span className="text-xs text-gray-400">
             Registrado em {dayjs(expense.createdAt).format('DD/MM/YYYY [às] HH:mm')}
           </span>
         </div>
+
+        {/* Mensagem original — exibida apenas para gastos registrados via WhatsApp */}
+        {expense.source === 'WHATSAPP' && expense.rawMessage && (
+          <div className="bg-gray-50 rounded-xl px-3 py-2">
+            <p className="text-xs font-medium text-gray-500 mb-0.5">Mensagem original</p>
+            <p className="text-sm text-gray-700 italic">"{expense.rawMessage}"</p>
+          </div>
+        )}
 
         {/* Formulário de edição */}
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
