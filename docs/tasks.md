@@ -359,10 +359,10 @@
 **Entrega:** valida código (compara bcrypt), checa TTL e tentativas, emite access token JWT (15min) e refresh token (UUID opaco, 30d) — refresh em cookie `httpOnly; Secure; SameSite=Strict`.
 
 **Critérios de aceitação:**
-- [ ] Código correto + dentro do TTL → 200 com access token no body e refresh em cookie.
-- [ ] Código errado incrementa `attempts`; após 5 tentativas, código é invalidado (`used_at` setado).
-- [ ] Código expirado → 401.
-- [ ] Refresh token persistido em `refresh_tokens` com hash, `user_agent`, `ip`.
+- [x] Código correto + dentro do TTL → 200 com access token no body e refresh em cookie.
+- [x] Código errado incrementa `attempts`; após 5 tentativas, código é invalidado (`used_at` setado).
+- [x] Código expirado → 401.
+- [x] Refresh token persistido em `refresh_tokens` com hash, `user_agent`, `ip`.
 
 ---
 

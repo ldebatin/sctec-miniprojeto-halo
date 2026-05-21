@@ -2,6 +2,8 @@ package dev.halo.auth;
 
 import dev.halo.user.InvalidPhoneException;
 import dev.halo.user.PhoneNumberService;
+import dev.halo.user.User;
+import dev.halo.user.UserRepository;
 import dev.halo.whatsapp.EvolutionClient;
 import java.security.SecureRandom;
 import java.time.Instant;
@@ -12,9 +14,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Geração e envio de OTP via WhatsApp (RF-09).
+ * Geração, envio e verificação de OTP via WhatsApp (RF-09).
  *
- * Fluxo:
+ * Envio ({@link #send}, T-019):
  * <ol>
  *   <li>Normaliza o telefone para E.164.</li>
  *   <li>Verifica cooldown de 60s via {@link OtpRateLimiter} (Bucket4j em memória).</li>
@@ -23,8 +25,16 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>Envia mensagem via {@link EvolutionClient} com aviso de segurança.</li>
  * </ol>
  *
- * A resposta ao caller é sempre 200 — não revela se o telefone existe em
- * {@code users} ou não (critério RF-09).
+ * Verificação ({@link #verify}, T-020):
+ * <ol>
+ *   <li>Busca o OTP mais recente ainda válido para o telefone.</li>
+ *   <li>Compara o código via bcrypt; em erro, incrementa {@code attempts}
+ *       (após 5 tentativas, marca {@code usedAt} e invalida).</li>
+ *   <li>Em sucesso, marca {@code usedAt} e devolve o {@code User}.</li>
+ * </ol>
+ *
+ * Emissão de JWT + refresh token e construção da resposta HTTP ficam no
+ * {@link OtpController} — este service só valida.
  */
 @Service
 @RequiredArgsConstructor
@@ -32,10 +42,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class OtpService {
 
     static final int OTP_TTL_MINUTES = 5;
+    static final int OTP_MAX_ATTEMPTS = 5;
     static final String OTP_MESSAGE_TEMPLATE =
             "Seu código de acesso Halo: *%s*\n\nNunca compartilhe este código.";
 
     private final OtpCodeRepository otpCodeRepository;
+    private final UserRepository userRepository;
     private final PhoneNumberService phoneNumberService;
     private final EvolutionClient evolutionClient;
     private final OtpRateLimiter rateLimiter;
@@ -75,6 +87,47 @@ public class OtpService {
         evolutionClient.sendText(phone, message);
 
         log.info("OTP enviado phone={}", phone);
+    }
+
+    /**
+     * Verifica um código OTP. Em sucesso, marca o registro como consumido
+     * ({@code usedAt = now}) e retorna o {@link User} dono do telefone.
+     *
+     * Em falha (código inexistente, expirado, errado, ou usuário ausente)
+     * lança {@link OtpVerificationException}. Cada erro de match incrementa
+     * {@code attempts}; após {@link #OTP_MAX_ATTEMPTS} o registro é
+     * invalidado ({@code usedAt = now}) mesmo sem sucesso, prevenindo
+     * brute force.
+     *
+     * @param rawPhone telefone em qualquer formato aceito pelo {@link PhoneNumberService}
+     * @param code     código de 6 dígitos que o usuário digitou
+     */
+    @Transactional
+    public User verify(String rawPhone, String code) {
+        String phone = phoneNumberService.normalize(rawPhone);
+        Instant now = Instant.now();
+
+        OtpCode otp = otpCodeRepository.findLatestValid(phone, now)
+                .orElseThrow(() -> new OtpVerificationException("nenhum OTP válido"));
+
+        if (!passwordEncoder.matches(code, otp.getCodeHash())) {
+            otp.setAttempts(otp.getAttempts() + 1);
+            if (otp.getAttempts() >= OTP_MAX_ATTEMPTS) {
+                otp.setUsedAt(now);
+                log.warn("OTP invalidado por excesso de tentativas phone={}", phone);
+            }
+            otpCodeRepository.save(otp);
+            throw new OtpVerificationException("código inválido");
+        }
+
+        otp.setUsedAt(now);
+        otpCodeRepository.save(otp);
+
+        User user = userRepository.findByPhone(phone)
+                .orElseThrow(() -> new OtpVerificationException("usuário não cadastrado"));
+
+        log.info("OTP verificado userId={} phone={}", user.getId(), phone);
+        return user;
     }
 
     /** Gera um código numérico de 6 dígitos com zeros à esquerda quando necessário. */
