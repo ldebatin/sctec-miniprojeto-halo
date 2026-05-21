@@ -1,13 +1,18 @@
 package dev.halo.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 
 import dev.halo.user.User;
 import dev.halo.user.UserRepository;
+import dev.halo.whatsapp.EvolutionClient;
 import java.time.Instant;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpHeaders;
@@ -48,6 +53,16 @@ class SecurityIntegrationTest {
 
     @Autowired
     private JwtService jwtService;
+
+    @MockBean
+    private EvolutionClient evolutionClient;
+
+    @BeforeEach
+    void setUp() {
+        // OtpService.send chama o Evolution em endpoints públicos — em CI
+        // não há instância Evolution rodando, então mockamos.
+        doNothing().when(evolutionClient).sendText(any(), any());
+    }
 
     @Test
     void rota_protegida_sem_jwt_retorna_401() {
