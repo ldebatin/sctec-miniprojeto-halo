@@ -690,11 +690,11 @@
 **Entrega:** `WhatsappTextReportFormatter` que recebe o `MonthlyReport` e produz uma string com tabela monoespaçada (entre crases triplas, que o WhatsApp renderiza como código).
 
 **Critérios de aceitação:**
-- [ ] Cabeçalho com mês/ano em pt-BR.
-- [ ] Colunas: Categoria | Valor | %.
-- [ ] Linha final de total.
-- [ ] Valores em pt-BR (R$ 1.234,56).
-- [ ] Output cabe em 1 mensagem (sem ultrapassar limites do WhatsApp).
+- [x] Cabeçalho com mês/ano em pt-BR.
+- [x] Colunas: Categoria | Valor | %.
+- [x] Linha final de total.
+- [x] Valores em pt-BR (R$ 1.234,56).
+- [x] Output cabe em 1 mensagem (sem ultrapassar limites do WhatsApp).
 
 ---
 
