@@ -17,22 +17,28 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
- * Testes de integração do {@link OtpService} com banco PostgreSQL real.
+ * Testes de integração do {@link OtpService} com banco PostgreSQL real via Testcontainers.
  *
- * Usa o banco do docker-compose (infra/docker-compose.yml) via profile
- * "integrationtest". O {@link EvolutionClient} é mockado para evitar
- * chamadas reais ao Evolution Go.
- *
- * Pré-requisito: docker-compose up -d na pasta infra/ antes de rodar.
+ * Verifica persistência em {@code otp_codes}, TTL, hash bcrypt e cooldown
+ * com o contexto Spring completo. O {@link EvolutionClient} é mockado para
+ * evitar chamadas reais ao Evolution Go.
  */
 @SpringBootTest
-@ActiveProfiles("integrationtest")
+@Testcontainers
 @Transactional
 class OtpServiceIntegrationTest {
+
+    @Container
+    @ServiceConnection
+    static final PostgreSQLContainer<?> POSTGRES =
+            new PostgreSQLContainer<>("postgres:16-alpine");
 
     @Autowired
     private OtpService otpService;
