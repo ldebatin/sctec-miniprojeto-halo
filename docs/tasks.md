@@ -407,9 +407,9 @@
 **Entrega:** dois endpoints autenticados: retornar perfil (`id, name, phone, created_at`) e atualizar `name`.
 
 **Critérios de aceitação:**
-- [ ] `GET /me` retorna o usuário autenticado.
-- [ ] `PATCH /me` aceita `{ "name": "..." }`; valida tamanho ≥ 2 chars.
-- [ ] `phone` é imutável (não pode ser alterado via PATCH).
+- [x] `GET /me` retorna o usuário autenticado.
+- [x] `PATCH /me` aceita `{ "name": "..." }`; valida tamanho ≥ 2 chars.
+- [x] `phone` é imutável (não pode ser alterado via PATCH).
 
 ---
 
