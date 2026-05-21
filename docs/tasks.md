@@ -642,10 +642,10 @@
 **Entrega:** roteador de comandos antes do parser de gasto: se a mensagem é "site", "link", "web", "acessar" (case-insensitive), responde com a URL da aplicação.
 
 **Critérios de aceitação:**
-- [ ] Lista de gatilhos configurável via property.
-- [ ] URL vem de `application.yml` (`halo.web.public-url`).
-- [ ] Mensagem de resposta inclui o link clicável.
-- [ ] Comando é tratado antes da IA (não consome quota Gemini).
+- [x] Lista de gatilhos configurável via property.
+- [x] URL vem de `application.yml` (`halo.web.public-url`).
+- [x] Mensagem de resposta inclui o link clicável.
+- [x] Comando é tratado antes da IA (não consome quota Gemini).
 
 ---
 

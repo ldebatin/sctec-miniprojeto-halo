@@ -73,6 +73,14 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
 
 halo:
+  web:
+    # URL pública do PWA — usada no comando WhatsApp "site/link/web" (RF-10, T-037).
+    public-url: ${HALO_WEB_PUBLIC_URL:http://localhost:5173}
+    link-triggers:
+      - site
+      - link
+      - web
+      - acessar
   security:
     # Origens autorizadas pelo CORS (analise-tecnica §10.3). Lista
     # separada por vírgula. Default cobre o Vite dev server local; em

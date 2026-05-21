@@ -26,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  *       reinicia o fluxo (TTL 15 min).</li>
  * </ol>
  *
- * Mensagens fora do MVP (saudação genérica pós-cadastro, comandos "resumo",
- * "site", etc.) entram em T-037 / T-038.
+ * Comando de link da web ("site", "link", etc.) é tratado em T-037 antes deste
+ * serviço. Comandos "resumo" entram em T-038.
  */
 @Service
 @RequiredArgsConstructor
