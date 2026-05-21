@@ -10,6 +10,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Emissão e persistência de refresh tokens (analise-tecnica §10.2).
@@ -31,6 +32,38 @@ public class RefreshTokenService {
     static final Duration REFRESH_TOKEN_TTL = Duration.ofDays(30);
 
     private final RefreshTokenRepository repository;
+
+    /**
+     * Rotaciona um refresh token (T-021): valida o plaintext recebido no
+     * cookie, revoga o token anterior e emite um novo no lugar.
+     *
+     * @throws RefreshTokenException se o token está ausente, é desconhecido,
+     *     já foi revogado ou está expirado.
+     */
+    @Transactional
+    public RotatedRefreshToken rotate(String plaintext, String userAgent, String ip) {
+        if (plaintext == null || plaintext.isBlank()) {
+            throw new RefreshTokenException("refresh token ausente");
+        }
+
+        String hash = sha256Hex(plaintext);
+        RefreshToken current = repository.findByTokenHash(hash)
+                .orElseThrow(() -> new RefreshTokenException("refresh token desconhecido"));
+
+        Instant now = Instant.now();
+        if (current.getRevokedAt() != null) {
+            throw new RefreshTokenException("refresh token já revogado");
+        }
+        if (!current.getExpiresAt().isAfter(now)) {
+            throw new RefreshTokenException("refresh token expirado");
+        }
+
+        current.setRevokedAt(now);
+        repository.save(current);
+
+        IssuedRefreshToken next = issue(current.getUserId(), userAgent, ip);
+        return new RotatedRefreshToken(current.getUserId(), next);
+    }
 
     /**
      * Emite um novo refresh token, persiste o hash + metadados e devolve
@@ -70,4 +103,6 @@ public class RefreshTokenService {
     }
 
     public record IssuedRefreshToken(String token, Duration ttl) {}
+
+    public record RotatedRefreshToken(UUID userId, IssuedRefreshToken issued) {}
 }

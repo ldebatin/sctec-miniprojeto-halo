@@ -43,7 +43,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class OtpController {
 
-    static final String REFRESH_COOKIE_NAME = "refresh_token";
+    static final String REFRESH_COOKIE_NAME = AuthCookies.REFRESH_COOKIE_NAME;
 
     private final OtpService otpService;
     private final JwtService jwtService;
@@ -80,17 +80,11 @@ public class OtpController {
                 jwtService.issueAccessToken(user.getId(), user.getPhone());
 
         String userAgent = servletRequest.getHeader("User-Agent");
-        String ip = clientIp(servletRequest);
+        String ip = AuthCookies.clientIp(servletRequest);
         RefreshTokenService.IssuedRefreshToken refresh =
                 refreshTokenService.issue(user.getId(), userAgent, ip);
 
-        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE_NAME, refresh.token())
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("Strict")
-                .path("/auth")
-                .maxAge(refresh.ttl())
-                .build();
+        ResponseCookie cookie = AuthCookies.buildRefreshCookie(refresh.token(), refresh.ttl());
 
         VerifyResponse body = new VerifyResponse(
                 access.token(),
@@ -99,21 +93,6 @@ public class OtpController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(body);
-    }
-
-    /**
-     * Resolve o IP do cliente respeitando proxy reverso. Confiamos em
-     * {@code X-Forwarded-For} porque o backend só é exposto via
-     * Traefik/nginx em produção; em dev/teste o header não existe e
-     * usamos o {@code remoteAddr} direto.
-     */
-    private static String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            int comma = forwarded.indexOf(',');
-            return (comma > 0 ? forwarded.substring(0, comma) : forwarded).trim();
-        }
-        return request.getRemoteAddr();
     }
 
     /** Payload de entrada para {@code POST /auth/otp/request}. */

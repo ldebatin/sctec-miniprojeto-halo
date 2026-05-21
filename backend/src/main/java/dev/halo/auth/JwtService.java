@@ -1,5 +1,7 @@
 package dev.halo.auth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import java.time.Duration;
 import java.time.Instant;
@@ -60,5 +62,33 @@ public class JwtService {
         return new IssuedAccessToken(jwt, accessTokenTtl);
     }
 
+    /**
+     * Valida assinatura e expiração de um access token e devolve as claims
+     * relevantes. Usado pelo {@code JwtAuthenticationFilter} em T-021.
+     *
+     * @throws JwtException se a assinatura é inválida, o token está expirado,
+     *     ou as claims obrigatórias estão ausentes/mal formadas.
+     */
+    public ParsedAccessToken parseAccessToken(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(signingKey)
+                .requireIssuer(issuer)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        try {
+            UUID userId = UUID.fromString(claims.getSubject());
+            String phone = claims.get("phone", String.class);
+            if (phone == null || phone.isBlank()) {
+                throw new JwtException("claim 'phone' ausente");
+            }
+            return new ParsedAccessToken(userId, phone);
+        } catch (IllegalArgumentException e) {
+            throw new JwtException("claim 'sub' inválida: não é UUID", e);
+        }
+    }
+
     public record IssuedAccessToken(String token, Duration expiresIn) {}
+
+    public record ParsedAccessToken(UUID userId, String phone) {}
 }

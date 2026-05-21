@@ -52,6 +52,61 @@ class JwtServiceTest {
                 .hasMessageContaining("32 bytes");
     }
 
+    // ----------------------------------------------------------------
+    // parseAccessToken (T-021)
+    // ----------------------------------------------------------------
+
+    @Test
+    void parse_devolve_userId_e_phone_para_token_valido() {
+        JwtService service = new JwtService(
+                new JwtProperties(SECRET, Duration.ofMinutes(15), "halo"));
+        UUID userId = UUID.randomUUID();
+        String token = service.issueAccessToken(userId, "+5547999999999").token();
+
+        JwtService.ParsedAccessToken parsed = service.parseAccessToken(token);
+
+        assertThat(parsed.userId()).isEqualTo(userId);
+        assertThat(parsed.phone()).isEqualTo("+5547999999999");
+    }
+
+    @Test
+    void parse_falha_para_assinatura_invalida() {
+        JwtService issuer = new JwtService(
+                new JwtProperties(SECRET, Duration.ofMinutes(15), "halo"));
+        String token = issuer.issueAccessToken(UUID.randomUUID(), "+5547999999999").token();
+
+        String otherSecret = Base64.getEncoder()
+                .encodeToString("11111111111111111111111111111111".getBytes());
+        JwtService outroVerificador = new JwtService(
+                new JwtProperties(otherSecret, Duration.ofMinutes(15), "halo"));
+
+        assertThatThrownBy(() -> outroVerificador.parseAccessToken(token))
+                .isInstanceOf(io.jsonwebtoken.JwtException.class);
+    }
+
+    @Test
+    void parse_falha_para_token_expirado() {
+        JwtService service = new JwtService(
+                new JwtProperties(SECRET, Duration.ofSeconds(-1), "halo"));
+        String token = service.issueAccessToken(UUID.randomUUID(), "+5547999999999").token();
+
+        assertThatThrownBy(() -> service.parseAccessToken(token))
+                .isInstanceOf(io.jsonwebtoken.ExpiredJwtException.class);
+    }
+
+    @Test
+    void parse_falha_para_token_de_outro_issuer() {
+        JwtService outro = new JwtService(
+                new JwtProperties(SECRET, Duration.ofMinutes(15), "outro-emissor"));
+        String token = outro.issueAccessToken(UUID.randomUUID(), "+5547999999999").token();
+
+        JwtService verificador = new JwtService(
+                new JwtProperties(SECRET, Duration.ofMinutes(15), "halo"));
+
+        assertThatThrownBy(() -> verificador.parseAccessToken(token))
+                .isInstanceOf(io.jsonwebtoken.JwtException.class);
+    }
+
     private Claims parseClaims(String token) {
         byte[] keyBytes = Base64.getDecoder().decode(SECRET);
         return Jwts.parser()

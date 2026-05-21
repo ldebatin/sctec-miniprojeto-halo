@@ -73,6 +73,11 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
 
 halo:
+  security:
+    # Origens autorizadas pelo CORS (analise-tecnica §10.3). Lista
+    # separada por vírgula. Default cobre o Vite dev server local; em
+    # produção injetar via HALO_SECURITY_CORS_ALLOWED_ORIGINS.
+    cors-allowed-origins: ${HALO_SECURITY_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   auth:
     jwt:
       # Segredo HMAC-SHA256 do access token (analise-tecnica §10.2). Base64
