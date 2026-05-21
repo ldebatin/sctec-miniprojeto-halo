@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUpdateProfile } from '../hooks/useProfile'
 import { useAuthStore } from '../stores/auth'
 import { getCategories, createCategory, deleteCategory } from '../api/categories'
+import { logout as logoutApi } from '../api/auth'
 import axios from 'axios'
 
 // ─── Utilitários ──────────────────────────────────────────────────────────────
@@ -51,7 +52,12 @@ export default function ProfilePage() {
   if (isLoading) return <ProfileSkeleton />
   if (isError || !user) return <ProfileError />
 
-  function handleLogout() {
+  async function handleLogout() {
+    try {
+      await logoutApi()
+    } catch {
+      // ignora erros de rede — o objetivo é sempre deslogar o cliente
+    }
     clearAuth()
     navigate('/login', { replace: true })
   }
