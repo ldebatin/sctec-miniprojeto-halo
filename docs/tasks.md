@@ -375,11 +375,11 @@
 **Entrega:** filtro do Spring Security valida access token em todas as rotas autenticadas. Endpoint `POST /auth/refresh` lê o cookie, rotaciona o refresh token (revoga o anterior), emite novo access.
 
 **Critérios de aceitação:**
-- [ ] Rota protegida sem JWT válido retorna 401.
-- [ ] JWT inválido/expirado retorna 401.
-- [ ] `/auth/refresh` exige cookie válido; revoga o anterior e emite novo.
-- [ ] Refresh token revogado/expirado retorna 401.
-- [ ] Configuração `SecurityFilterChain` definida; CORS configurado para `VITE_API_BASE_URL`.
+- [x] Rota protegida sem JWT válido retorna 401.
+- [x] JWT inválido/expirado retorna 401.
+- [x] `/auth/refresh` exige cookie válido; revoga o anterior e emite novo.
+- [x] Refresh token revogado/expirado retorna 401.
+- [x] Configuração `SecurityFilterChain` definida; CORS configurado para `VITE_API_BASE_URL`.
 
 ---
 
