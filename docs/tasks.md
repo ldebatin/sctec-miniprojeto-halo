@@ -341,12 +341,12 @@
 **Entrega:** endpoint que gera código de 6 dígitos, salva hash bcrypt em `otp_codes` (TTL 5min), envia via WhatsApp com mensagem incluindo "Nunca compartilhe este código.".
 
 **Critérios de aceitação:**
-- [ ] Telefone normalizado em E.164 antes de buscar/criar.
-- [ ] Se telefone não existe em `users`, ainda assim envia OTP (cadastro implícito não existe nessa rota — assumimos pré-cadastro via WhatsApp).
-- [ ] Código gerado com `SecureRandom` (6 dígitos numéricos).
-- [ ] Cooldown de 60s por telefone via Bucket4j em memória; 429 em caso de excesso.
-- [ ] Mensagem enviada via Evolution contém o código e aviso de segurança.
-- [ ] Resposta 200 sem revelar se o telefone existe ou não.
+- [x] Telefone normalizado em E.164 antes de buscar/criar.
+- [x] Se telefone não existe em `users`, ainda assim envia OTP (cadastro implícito não existe nessa rota — assumimos pré-cadastro via WhatsApp).
+- [x] Código gerado com `SecureRandom` (6 dígitos numéricos).
+- [x] Cooldown de 60s por telefone via Bucket4j em memória; 429 em caso de excesso.
+- [x] Mensagem enviada via Evolution contém o código e aviso de segurança.
+- [x] Resposta 200 sem revelar se o telefone existe ou não.
 
 ---
 
