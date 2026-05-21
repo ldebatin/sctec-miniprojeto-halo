@@ -76,8 +76,8 @@ public class ExpenseController {
 
         Page<Expense> result = expenseRepository.findAll(spec, pageable);
 
-        List<ExpenseDtos.Response> content = result.getContent().stream()
-                .map(ExpenseDtos.Response::from)
+        List<ExpenseResponse> content = result.getContent().stream()
+                .map(ExpenseResponse::from)
                 .toList();
         return ResponseEntity.ok(new PagedResponse(
                 content,
@@ -87,7 +87,7 @@ public class ExpenseController {
     }
 
     @PostMapping
-    public ResponseEntity<ExpenseDtos.Response> create(
+    public ResponseEntity<ExpenseResponse> create(
             @AuthenticationPrincipal User user,
             @Valid @RequestBody ExpenseDtos.CreateRequest request) {
 
@@ -108,20 +108,20 @@ public class ExpenseController {
         expense.setUpdatedAt(now);
 
         Expense saved = expenseRepository.save(expense);
-        return ResponseEntity.status(201).body(ExpenseDtos.Response.from(saved));
+        return ResponseEntity.status(201).body(ExpenseResponse.from(saved));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ExpenseDtos.Response> findOne(
+    public ResponseEntity<ExpenseResponse> findOne(
             @AuthenticationPrincipal User user,
             @PathVariable UUID id) {
         return expenseRepository.findByIdAndUserIdAndDeletedAtIsNull(id, user.getId())
-                .map(e -> ResponseEntity.ok(ExpenseDtos.Response.from(e)))
+                .map(e -> ResponseEntity.ok(ExpenseResponse.from(e)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ExpenseDtos.Response> update(
+    public ResponseEntity<ExpenseResponse> update(
             @AuthenticationPrincipal User user,
             @PathVariable UUID id,
             @Valid @RequestBody ExpenseDtos.UpdateRequest request) {
@@ -149,7 +149,7 @@ public class ExpenseController {
         expense.setUpdatedAt(Instant.now());
 
         Expense saved = expenseRepository.save(expense);
-        return ResponseEntity.ok(ExpenseDtos.Response.from(saved));
+        return ResponseEntity.ok(ExpenseResponse.from(saved));
     }
 
     @DeleteMapping("/{id}")
@@ -180,7 +180,7 @@ public class ExpenseController {
 
     /** Envelope simples para resposta paginada — evita a verbosidade do {@code Page}. */
     record PagedResponse(
-            List<ExpenseDtos.Response> content,
+            List<ExpenseResponse> content,
             int page,
             int size,
             long total

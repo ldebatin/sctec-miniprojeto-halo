@@ -674,10 +674,10 @@
 **Entrega:** `ReportService.monthly(userId, yearMonth)` retorna totais por categoria + total geral + lista de gastos. Endpoints `GET /reports/monthly?month=YYYY-MM` e `GET /reports/categories?from=&to=`.
 
 **Critérios de aceitação:**
-- [ ] Query usa `GROUP BY category, date_trunc('month', occurred_at)`.
-- [ ] Resposta inclui: total, breakdown por categoria (id, name, color, total, %).
-- [ ] Endpoint REST autenticado; só retorna dados do user.
-- [ ] Lançamentos soft-deletados são excluídos.
+- [x] Query usa `GROUP BY category, date_trunc('month', occurred_at)`.
+- [x] Resposta inclui: total, breakdown por categoria (id, name, color, total, %).
+- [x] Endpoint REST autenticado; só retorna dados do user.
+- [x] Lançamentos soft-deletados são excluídos.
 
 ---
 
