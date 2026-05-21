@@ -81,8 +81,10 @@ halo:
     # Modelo default — analise-tecnica §9.1.
     model: ${GEMINI_MODEL:gemini-2.5-flash}
   evolution:
-    # Segredo compartilhado entre Halo e Evolution para validar webhooks.
-    # Mesmo valor que o GLOBAL_API_KEY do container evolution-go (infra/.env).
+    # GLOBAL_API_KEY do Evolution Go (mesmo valor do container em infra/.env).
+    # Usado quando o backend chama os endpoints GLOBAIS do Evolution.
+    # O webhook que CHEGA no backend (POST /webhooks/evolution) NÃO usa essa
+    # chave — o Evolution Go self-hosted não envia auth em webhooks de saída.
     api-key: ${EVOLUTION_API_KEY:}
     # URL base do Evolution Go que o backend usa ao ENVIAR mensagens.
     # Em dev local com compose: http://localhost:8081 (default na infra/.env).

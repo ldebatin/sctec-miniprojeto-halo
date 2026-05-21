@@ -1,24 +1,30 @@
 package dev.halo.whatsapp;
 
-import dev.halo.whatsapp.config.EvolutionProperties;
+import dev.halo.whatsapp.dto.EvolutionGoWebhookPayload;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Webhook que recebe eventos do Evolution Go (RF-01/RF-02, analise-tecnica.md §8.2).
  *
- * Esta task (T-011) faz: validar apikey, ignorar fromMe, persistir a mensagem
- * em {@code whatsapp_messages} via {@link InboundMessageService} (idempotente
+ * Sem autenticação no endpoint — o Evolution Go self-hosted não envia auth em
+ * webhooks de saída (issue upstream #1933 closed as not-planned). A proteção
+ * fica a cargo da rede / reverse proxy à frente do backend (ver §10.3 do
+ * doc técnico).
+ *
+ * O wire format do Evolution Go usa envelope Baileys (PascalCase) e difere do
+ * Evolution API Node v2 originalmente documentado. {@link EvolutionGoWebhookPayload}
+ * modela o wire e {@code toCanonical()} converte para o DTO interno
+ * {@link EvolutionPayloadDto} consumido pelo service.
+ *
+ * Esta task (T-011) faz: ignorar fromMe, persistir a mensagem em
+ * {@code whatsapp_messages} via {@link InboundMessageService} (idempotente
  * + resolução de usuário + cadastro conversacional AWAITING_NAME). Sempre
  * devolve 200 nos eventos aceitos.
  *
@@ -30,18 +36,11 @@ import org.springframework.web.bind.annotation.RestController;
 @Slf4j
 public class EvolutionWebhookController {
 
-    private final EvolutionProperties properties;
     private final InboundMessageService inboundMessageService;
 
     @PostMapping
-    public ResponseEntity<Void> receive(
-            @RequestHeader(value = "apikey", required = false) String apikey,
-            @RequestBody EvolutionPayloadDto payload
-    ) {
-        if (!isAuthorized(apikey)) {
-            log.warn("Webhook recusado: apikey inválido ou ausente");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
+    public ResponseEntity<Void> receive(@RequestBody EvolutionGoWebhookPayload wire) {
+        EvolutionPayloadDto payload = wire.toCanonical();
 
         if (isFromMe(payload)) {
             log.debug("Webhook ignorado (fromMe=true) msgId={}", msgId(payload));
@@ -55,23 +54,18 @@ public class EvolutionWebhookController {
             return ResponseEntity.ok().build();
         }
 
-        inboundMessageService.record(payload);
-
-        log.info("Webhook processado event={} instance={} msgId={} pushName={}",
-                payload.event(), payload.instance(), msgId(payload),
-                payload.data().pushName());
+        try {
+            inboundMessageService.record(payload);
+            log.info("Webhook processado event={} instance={} msgId={} pushName={}",
+                    payload.event(), payload.instance(), msgId(payload),
+                    payload.data().pushName());
+        } catch (DuplicateWebhookException e) {
+            // Evolution Go entrega o mesmo evento 2x; já foi processado por
+            // outra thread. Devolver 200 para o Evolution não tentar de novo.
+            log.info("Webhook duplicado ignorado msgId={}", e.getMsgId());
+        }
 
         return ResponseEntity.ok().build();
-    }
-
-    private boolean isAuthorized(String received) {
-        String expected = properties.apiKey();
-        if (expected == null || expected.isBlank() || received == null) {
-            return false;
-        }
-        return MessageDigest.isEqual(
-                received.getBytes(StandardCharsets.UTF_8),
-                expected.getBytes(StandardCharsets.UTF_8));
     }
 
     private boolean isFromMe(EvolutionPayloadDto payload) {

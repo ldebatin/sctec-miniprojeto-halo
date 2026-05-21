@@ -349,7 +349,7 @@ Os NFRs detalhados estão na [analise-tecnica.md §1.2 e §10](./analise-tecnica
 | Performance | Resposta WhatsApp (texto) < 3s p95; gráfico < 8s p95 |
 | Disponibilidade | 99% (single-VPS, best-effort para o MVP) |
 | Resiliência | Falha de IA não bloqueia registro — fallback "Sem categoria" |
-| Segurança | HTTPS obrigatório, OTP com hash bcrypt, JWT em memória (não localStorage), webhook autenticado por apikey |
+| Segurança | HTTPS obrigatório, OTP com hash bcrypt, JWT em memória (não localStorage), webhook do Evolution sem auth dedicada — Evolution Go self-hosted não envia auth em webhooks de saída; proteção por rede/reverse proxy |
 | Privacidade | Logs nunca contêm OTP, JWT, ou mensagens financeiras com valor identificável (apenas hashes/prefixos) |
 | Acessibilidade | Mobile-first; contraste mínimo WCAG AA na web |
 | Custo | < R$ 1,00 / usuário ativo / mês com IA (target) |

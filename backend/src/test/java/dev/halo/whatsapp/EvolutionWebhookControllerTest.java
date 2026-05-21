@@ -1,6 +1,7 @@
 package dev.halo.whatsapp;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -8,7 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import dev.halo.whatsapp.config.EvolutionProperties;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,36 +18,33 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 class EvolutionWebhookControllerTest {
 
-    private static final String API_KEY = "test-secret";
     private static final String PAYLOAD = """
             {
-              "event": "messages.upsert",
-              "instance": "halo-bot",
+              "event": "Message",
+              "instanceName": "halo-bot",
               "data": {
-                "key": {
-                  "id": "ABCD123",
-                  "remoteJid": "5547999999999@s.whatsapp.net",
-                  "fromMe": false
+                "Info": {
+                  "ID": "ABCD123",
+                  "Chat": "5547999999999@s.whatsapp.net",
+                  "IsFromMe": false,
+                  "PushName": "Maria"
                 },
-                "message": { "conversation": "Mercado 87,30" },
-                "messageTimestamp": 1716042000,
-                "pushName": "Maria"
+                "Message": { "conversation": "Mercado 87,30" }
               }
             }""";
 
     private static final String FROM_ME_PAYLOAD = """
             {
-              "event": "messages.upsert",
-              "instance": "halo-bot",
+              "event": "Message",
+              "instanceName": "halo-bot",
               "data": {
-                "key": {
-                  "id": "OUT-1",
-                  "remoteJid": "5547999999999@s.whatsapp.net",
-                  "fromMe": true
+                "Info": {
+                  "ID": "OUT-1",
+                  "Chat": "5547999999999@s.whatsapp.net",
+                  "IsFromMe": true,
+                  "PushName": "Maria"
                 },
-                "message": { "conversation": "resposta do bot" },
-                "messageTimestamp": 1716042100,
-                "pushName": "Maria"
+                "Message": { "conversation": "resposta do bot" }
               }
             }""";
 
@@ -57,34 +54,13 @@ class EvolutionWebhookControllerTest {
     @BeforeEach
     void setUp() {
         inboundMessageService = mock(InboundMessageService.class);
-        EvolutionWebhookController controller = new EvolutionWebhookController(
-                new EvolutionProperties(API_KEY, null, null, null), inboundMessageService);
+        EvolutionWebhookController controller = new EvolutionWebhookController(inboundMessageService);
         mvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 
     @Test
-    void sem_apikey_retorna_401() throws Exception {
+    void payload_valido_retorna_200_e_persiste() throws Exception {
         mvc.perform(post("/webhooks/evolution")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(PAYLOAD))
-                .andExpect(status().isUnauthorized());
-        verify(inboundMessageService, never()).record(any());
-    }
-
-    @Test
-    void com_apikey_errado_retorna_401() throws Exception {
-        mvc.perform(post("/webhooks/evolution")
-                        .header("apikey", "wrong-key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(PAYLOAD))
-                .andExpect(status().isUnauthorized());
-        verify(inboundMessageService, never()).record(any());
-    }
-
-    @Test
-    void com_apikey_correto_retorna_200_e_persiste() throws Exception {
-        mvc.perform(post("/webhooks/evolution")
-                        .header("apikey", API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PAYLOAD))
                 .andExpect(status().isOk());
@@ -92,9 +68,19 @@ class EvolutionWebhookControllerTest {
     }
 
     @Test
+    void webhook_duplicado_retorna_200_sem_propagar_excecao() throws Exception {
+        doThrow(new DuplicateWebhookException("ABCD123"))
+                .when(inboundMessageService).record(any(EvolutionPayloadDto.class));
+
+        mvc.perform(post("/webhooks/evolution")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(PAYLOAD))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void fromMe_true_retorna_200_sem_persistir() throws Exception {
         mvc.perform(post("/webhooks/evolution")
-                        .header("apikey", API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(FROM_ME_PAYLOAD))
                 .andExpect(status().isOk());

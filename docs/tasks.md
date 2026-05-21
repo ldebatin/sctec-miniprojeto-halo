@@ -148,19 +148,20 @@
 
 ---
 
-### T-008 — Endpoint POST /webhooks/evolution com validação apikey
+### T-008 — Endpoint POST /webhooks/evolution
 - **Componente:** backend
 - **RF(s):** RF-02
 - **Estimativa:** 1d
 - **Depende de:** T-005
 
-**Entrega:** controller que recebe o payload da Evolution, valida header `apikey`, e responde 200 (ainda sem processar). Lib `EvolutionPayloadDto` modela o JSON.
+**Entrega:** controller que recebe o payload da Evolution e responde 200 (ainda sem processar). Lib `EvolutionPayloadDto` modela o JSON.
+
+> **Correção pós-merge:** o design original era validar header `apikey`, mas o Evolution Go self-hosted não envia headers de auth em webhooks de saída (issue upstream #1933 closed as not-planned). Uma tentativa de mover o segredo pro path da URL também não emplacou em campo. O endpoint ficou **sem auth dedicada**; a proteção é a rede / reverse proxy à frente do backend.
 
 **Critérios de aceitação:**
-- [ ] `POST /webhooks/evolution` aceita o JSON descrito em [analise-tecnica.md §8.2](./analise-tecnica.md).
-- [ ] Sem header `apikey` (ou com valor errado) retorna 401.
-- [ ] Mensagens com `fromMe=true` são ignoradas (responde 200 sem processar).
-- [ ] DTO com Jackson deserializa `data.key.id`, `data.key.remoteJid`, `data.message.conversation`, `data.pushName`, `data.messageTimestamp`.
+- [x] `POST /webhooks/evolution` aceita o JSON descrito em [analise-tecnica.md §8.2](./analise-tecnica.md).
+- [x] Mensagens com `fromMe=true` são ignoradas (responde 200 sem processar).
+- [x] DTO com Jackson deserializa `data.key.id`, `data.key.remoteJid`, `data.message.conversation`, `data.pushName`, `data.messageTimestamp`.
 
 ---
 

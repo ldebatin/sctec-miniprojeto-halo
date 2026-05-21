@@ -146,7 +146,7 @@ Resposta esperada (200): payload com o ID da mensagem. Confirme visualmente no c
 
 ## 6. (Opcional) Apontar o webhook para o backend
 
-Quando T-008 estiver no ar, configure o webhook para receber eventos no backend Halo:
+Quando T-008 estiver no ar, configure o webhook para receber eventos no backend Halo. O endpoint **não tem auth dedicada** — o Evolution Go self-hosted não envia headers de auth em webhooks de saída (issue upstream #1933, closed as not-planned). A proteção é de rede / reverse proxy à frente do backend.
 
 ```bash
 curl -sS -X POST http://localhost:8080/instance/connect \
@@ -159,7 +159,7 @@ curl -sS -X POST http://localhost:8080/instance/connect \
       }'
 ```
 
-Em produção, troque por `https://api.halo.<domain>/webhooks/evolution` e configure o `EVOLUTION_WEBHOOK_URL` no `infra/.env`.
+Em produção, troque por `https://api.halo.<domain>/webhooks/evolution` e configure `EVOLUTION_WEBHOOK_URL` no `infra/.env`.
 
 ---
 
@@ -193,7 +193,8 @@ Em produção, troque por `https://api.halo.<domain>/webhooks/evolution` e confi
 
 | Var | Onde | Para quê |
 |---|---|---|
-| `EVOLUTION_API_KEY` | `infra/.env` | Mesmo valor do `GLOBAL_API_KEY` do container. Usado no header `apikey` e na ativação da licença. |
+| `EVOLUTION_API_KEY` | `infra/.env` + `backend/.env` | Mesmo valor do `GLOBAL_API_KEY` do container. Usado no header `apikey` das chamadas globais (`/instance/all`, `/instance/create`) e na ativação da licença. Não tem nada a ver com o webhook que CHEGA no backend (esse fica sem auth dedicada — Evolution Go não envia headers em webhooks de saída). |
 | `EVOLUTION_HOST_PORT` | `infra/.env` | Porta exposta no host. Default 8080 — troque (ex: 8088) se for rodar o backend Spring junto em dev. |
 | `EVOLUTION_WEBHOOK_URL` | `infra/.env` | URL do backend que receberá o webhook. Vazia em dev sem túnel. |
-| `EVOLUTION_BASE_URL` | (futuro, no backend) | URL pela qual o backend chama o Evolution. Em compose: `http://evolution-go:8080`. |
+| `EVOLUTION_BASE_URL` | `backend/.env` | URL pela qual o backend chama o Evolution. Em compose: `http://evolution-go:8080`. |
+| `EVOLUTION_INSTANCE_TOKEN` | `backend/.env` | Token retornado por `POST /instance/create`. Necessário para endpoints POR INSTÂNCIA (ver CLAUDE.md §"Evolution Go — modelo de auth em 2 níveis"). |

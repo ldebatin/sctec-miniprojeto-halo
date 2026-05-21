@@ -6,62 +6,80 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
 /**
- * Verifica que o Jackson deserializa os 5 campos do payload §8.2:
- * data.key.id, data.key.remoteJid, data.message.conversation, data.pushName,
- * data.messageTimestamp (mais data.key.fromMe, usado pelo curto-circuito).
+ * Verifica que o Jackson deserializa o payload real do Evolution Go
+ * (envelope Baileys / PascalCase) e que {@link EvolutionGoWebhookPayload#toCanonical()}
+ * preenche os 5 campos consumidos pelo {@code InboundMessageService}:
+ * id, chat (remoteJid), fromMe, conversation, pushName.
  */
 class EvolutionPayloadDtoTest {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void deserializa_payload_completo_da_analise_tecnica() throws Exception {
+    void deserializa_payload_real_do_evolution_go_e_converte_para_canonico() throws Exception {
         String json = """
                 {
-                  "event": "messages.upsert",
-                  "instance": "halo-bot",
+                  "event": "Message",
+                  "instanceName": "halo-bot",
+                  "instanceId": "9b02de74-26d8-4d55-8388-8fff1090b39f",
+                  "instanceToken": "tok-redacted",
                   "data": {
-                    "key": {
-                      "id": "ABCD123",
-                      "remoteJid": "5547999999999@s.whatsapp.net",
-                      "fromMe": false
+                    "Info": {
+                      "ID": "ABCD123",
+                      "Chat": "5547999999999@s.whatsapp.net",
+                      "Sender": "5547999999999@s.whatsapp.net",
+                      "IsFromMe": false,
+                      "IsGroup": false,
+                      "PushName": "Maria",
+                      "Timestamp": "2026-05-20T21:28:23-03:00",
+                      "Type": "text"
                     },
-                    "message": { "conversation": "Mercado 87,30" },
-                    "messageTimestamp": 1716042000,
-                    "pushName": "Maria"
+                    "Message": {
+                      "conversation": "Mercado 87,30",
+                      "messageContextInfo": { "deviceListMetadataVersion": 2 }
+                    }
                   }
                 }""";
 
-        EvolutionPayloadDto dto = objectMapper.readValue(json, EvolutionPayloadDto.class);
+        EvolutionGoWebhookPayload wire = objectMapper.readValue(json, EvolutionGoWebhookPayload.class);
+        assertThat(wire.event()).isEqualTo("Message");
+        assertThat(wire.instanceName()).isEqualTo("halo-bot");
+        assertThat(wire.data().info().id()).isEqualTo("ABCD123");
+        assertThat(wire.data().info().chat()).isEqualTo("5547999999999@s.whatsapp.net");
+        assertThat(wire.data().info().isFromMe()).isFalse();
+        assertThat(wire.data().info().pushName()).isEqualTo("Maria");
+        assertThat(wire.data().message().conversation()).isEqualTo("Mercado 87,30");
 
-        assertThat(dto.event()).isEqualTo("messages.upsert");
-        assertThat(dto.instance()).isEqualTo("halo-bot");
-        assertThat(dto.data().key().id()).isEqualTo("ABCD123");
-        assertThat(dto.data().key().remoteJid()).isEqualTo("5547999999999@s.whatsapp.net");
-        assertThat(dto.data().key().fromMe()).isFalse();
-        assertThat(dto.data().message().conversation()).isEqualTo("Mercado 87,30");
-        assertThat(dto.data().pushName()).isEqualTo("Maria");
-        assertThat(dto.data().messageTimestamp()).isEqualTo(1716042000L);
+        EvolutionPayloadDto canonical = wire.toCanonical();
+        assertThat(canonical.event()).isEqualTo("Message");
+        assertThat(canonical.instance()).isEqualTo("halo-bot");
+        assertThat(canonical.data().key().id()).isEqualTo("ABCD123");
+        assertThat(canonical.data().key().remoteJid()).isEqualTo("5547999999999@s.whatsapp.net");
+        assertThat(canonical.data().key().fromMe()).isFalse();
+        assertThat(canonical.data().message().conversation()).isEqualTo("Mercado 87,30");
+        assertThat(canonical.data().pushName()).isEqualTo("Maria");
     }
 
     @Test
-    void tolera_campos_desconhecidos() throws Exception {
+    void tolera_campos_desconhecidos_no_envelope_e_em_info() throws Exception {
         String json = """
                 {
-                  "event": "messages.upsert",
-                  "instance": "halo-bot",
-                  "extraField": "should be ignored",
+                  "event": "Message",
+                  "instanceName": "halo-bot",
+                  "campoExtraDesconhecido": "ignored",
                   "data": {
-                    "key": { "id": "X", "fromMe": false, "extra": 1 },
-                    "messageTimestamp": 1716042000
+                    "Info": {
+                      "ID": "X",
+                      "IsFromMe": false,
+                      "CampoExtra": 1
+                    },
+                    "Message": { "conversation": "olá" },
+                    "OutroCampo": true
                   }
                 }""";
 
-        ObjectMapper lenient = objectMapper.copy()
-                .configure(com.fasterxml.jackson.databind.DeserializationFeature
-                        .FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-        EvolutionPayloadDto dto = lenient.readValue(json, EvolutionPayloadDto.class);
-        assertThat(dto.data().key().id()).isEqualTo("X");
+        EvolutionGoWebhookPayload wire = objectMapper.readValue(json, EvolutionGoWebhookPayload.class);
+        assertThat(wire.data().info().id()).isEqualTo("X");
+        assertThat(wire.toCanonical().data().key().id()).isEqualTo("X");
     }
 }

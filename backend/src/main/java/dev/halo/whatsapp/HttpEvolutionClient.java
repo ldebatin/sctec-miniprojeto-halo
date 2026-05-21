@@ -38,6 +38,15 @@ public class HttpEvolutionClient implements EvolutionClient {
         // (incluindo /send/text) é o INSTANCE TOKEN, não a global api-key
         // (CLAUDE.md §"Evolution Go — modelo de auth em 2 níveis", confirmado
         // empiricamente no bugfix da T-011/T-012).
+        if (properties.instanceToken() == null || properties.instanceToken().isBlank()) {
+            // Fail-fast: sem este token, todo /send/text vira 401 em runtime
+            // — situação que descobrimos quando o IntelliJ subia o backend
+            // com working directory na raiz do repo e o spring-dotenv não
+            // encontrava o backend/.env (CLAUDE.md §"Local dev stack").
+            throw new IllegalStateException(
+                    "EVOLUTION_INSTANCE_TOKEN não configurado — confira backend/.env "
+                            + "e o working directory do processo (deve ser backend/).");
+        }
         this.restClient = builder
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("apikey", properties.instanceToken())
