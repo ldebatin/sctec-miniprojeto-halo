@@ -98,10 +98,18 @@ public class HttpEvolutionClient implements EvolutionClient {
                 ? phoneE164.substring(1)
                 : phoneE164;
         String base64 = Base64.getEncoder().encodeToString(imageBytes);
+        // Evolution Go espera o campo `url` aceitando data URI (`data:<mime>;base64,...`).
+        // Mandar base64 cru em `media` devolve 400 "URL is required" (validado no swagger
+        // local em /swagger/doc.json — schema MediaStruct).
+        String dataUri = "data:" + (mimeType == null || mimeType.isBlank() ? "image/png" : mimeType)
+                + ";base64," + base64;
 
         SendMediaRequest body = new SendMediaRequest(
-                number, "image", mimeType, base64,
-                caption == null || caption.isBlank() ? null : caption);
+                number,
+                "image",
+                dataUri,
+                caption == null || caption.isBlank() ? null : caption,
+                "halo-summary.png");
 
         restClient.post()
                 .uri("/send/media")
@@ -116,12 +124,23 @@ public class HttpEvolutionClient implements EvolutionClient {
     /** Payload do {@code POST /message/sendText/{instance}}. */
     private record SendTextRequest(String number, String text) {}
 
-    /** Payload do {@code POST /send/media} (Evolution Go). */
+    /**
+     * Payload do {@code POST /send/media} (Evolution Go — schema
+     * {@code MediaStruct}). Campos relevantes:
+     *
+     * <ul>
+     *   <li>{@code type} — "image", "video", "audio", "document".</li>
+     *   <li>{@code url} — URL HTTP **ou** data URI {@code data:<mime>;base64,...}.
+     *       Não há campo separado para base64.</li>
+     *   <li>{@code caption} — texto opcional.</li>
+     *   <li>{@code filename} — nome lógico exibido em alguns clientes.</li>
+     * </ul>
+     */
     private record SendMediaRequest(
             String number,
-            String mediatype,
-            String mimetype,
-            String media,
-            String caption
+            String type,
+            String url,
+            String caption,
+            String filename
     ) {}
 }

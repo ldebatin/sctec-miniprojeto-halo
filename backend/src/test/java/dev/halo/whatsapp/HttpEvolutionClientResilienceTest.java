@@ -151,6 +151,7 @@ class HttpEvolutionClientResilienceTest {
     void sendMedia_chama_endpoint_correto_com_body_base64() {
         byte[] png = new byte[]{(byte) 0x89, 'P', 'N', 'G', 1, 2, 3};
         String expectedBase64 = java.util.Base64.getEncoder().encodeToString(png);
+        String expectedDataUri = "data:image/png;base64," + expectedBase64;
 
         mockServer.expect(requestTo("http://evolution.test/send/media"))
                 .andExpect(method(HttpMethod.POST))
@@ -160,9 +161,9 @@ class HttpEvolutionClientResilienceTest {
                         .header("apikey", "fake-token"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.number").value("5547999999999"))
-                .andExpect(jsonPath("$.mediatype").value("image"))
-                .andExpect(jsonPath("$.mimetype").value("image/png"))
-                .andExpect(jsonPath("$.media").value(expectedBase64))
+                .andExpect(jsonPath("$.type").value("image"))
+                .andExpect(jsonPath("$.url").value(expectedDataUri))
+                .andExpect(jsonPath("$.filename").value("halo-summary.png"))
                 .andExpect(jsonPath("$.caption").value("Resumo de Maio"))
                 .andRespond(withSuccess());
 
