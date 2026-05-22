@@ -97,11 +97,19 @@ public class HttpEvolutionClient implements EvolutionClient {
         String number = phoneE164 != null && phoneE164.startsWith("+")
                 ? phoneE164.substring(1)
                 : phoneE164;
+        // Evolution Go espera no campo `url` ou uma URL HTTP, ou base64 puro
+        // (SEM o prefixo `data:<mime>;base64,`). Com data URI ele responde
+        // 400 "invalid base64 encoding" porque tenta decodificar a string
+        // inteira incluindo o prefixo. Validado por curl direto no swagger
+        // local em /swagger/doc.json — schema MediaStruct.
         String base64 = Base64.getEncoder().encodeToString(imageBytes);
 
         SendMediaRequest body = new SendMediaRequest(
-                number, "image", mimeType, base64,
-                caption == null || caption.isBlank() ? null : caption);
+                number,
+                "image",
+                base64,
+                caption == null || caption.isBlank() ? null : caption,
+                "halo-summary.png");
 
         restClient.post()
                 .uri("/send/media")
@@ -116,12 +124,25 @@ public class HttpEvolutionClient implements EvolutionClient {
     /** Payload do {@code POST /message/sendText/{instance}}. */
     private record SendTextRequest(String number, String text) {}
 
-    /** Payload do {@code POST /send/media} (Evolution Go). */
+    /**
+     * Payload do {@code POST /send/media} (Evolution Go — schema
+     * {@code MediaStruct}). Campos relevantes:
+     *
+     * <ul>
+     *   <li>{@code type} — "image", "video", "audio", "document".</li>
+     *   <li>{@code url} — URL HTTP **ou** base64 cru. Data URI
+     *       ({@code data:<mime>;base64,...}) NÃO funciona: Evolution Go
+     *       tenta decodificar a string inteira como base64, incluindo o
+     *       prefixo, e devolve 400 "invalid base64 encoding".</li>
+     *   <li>{@code caption} — texto opcional.</li>
+     *   <li>{@code filename} — nome lógico exibido em alguns clientes.</li>
+     * </ul>
+     */
     private record SendMediaRequest(
             String number,
-            String mediatype,
-            String mimetype,
-            String media,
-            String caption
+            String type,
+            String url,
+            String caption,
+            String filename
     ) {}
 }

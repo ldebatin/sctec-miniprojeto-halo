@@ -160,9 +160,9 @@ class HttpEvolutionClientResilienceTest {
                         .header("apikey", "fake-token"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.number").value("5547999999999"))
-                .andExpect(jsonPath("$.mediatype").value("image"))
-                .andExpect(jsonPath("$.mimetype").value("image/png"))
-                .andExpect(jsonPath("$.media").value(expectedBase64))
+                .andExpect(jsonPath("$.type").value("image"))
+                .andExpect(jsonPath("$.url").value(expectedBase64))
+                .andExpect(jsonPath("$.filename").value("halo-summary.png"))
                 .andExpect(jsonPath("$.caption").value("Resumo de Maio"))
                 .andRespond(withSuccess());
 
