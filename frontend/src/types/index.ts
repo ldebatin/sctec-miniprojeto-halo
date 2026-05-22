@@ -10,7 +10,10 @@ export interface Category {
   name: string
   icon: string
   color: string
-  global: boolean
+  /** true = categoria do usuário (inclui cópias de globais personalizadas). */
+  isCustom: boolean
+  active?: boolean
+  globalId?: string | null
 }
 
 export interface Expense {
