@@ -794,10 +794,10 @@
 **Entrega:** `frontend/Dockerfile` multi-stage: build com node, runtime com nginx alpine servindo o `dist/`.
 
 **Critérios de aceitação:**
-- [ ] Imagem final < 50 MB.
-- [ ] `nginx.conf` configura SPA fallback (todas as rotas servem `index.html`).
-- [ ] Gzip habilitado.
-- [ ] `VITE_API_BASE_URL` injetada no build via build arg.
+- [x] Imagem final < 50 MB.
+- [x] `nginx.conf` configura SPA fallback (todas as rotas servem `index.html`).
+- [x] Gzip habilitado.
+- [x] `VITE_API_BASE_URL` injetada no build via build arg.
 
 ---
 
