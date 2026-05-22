@@ -3,6 +3,7 @@ package dev.halo.whatsapp;
 import dev.halo.whatsapp.config.EvolutionProperties;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import java.util.Base64;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -80,6 +81,47 @@ public class HttpEvolutionClient implements EvolutionClient {
                 properties.instance(), phoneE164);
     }
 
+    @Override
+    @Retry(name = RESILIENCE_INSTANCE)
+    @CircuitBreaker(name = RESILIENCE_INSTANCE)
+    public void sendMedia(String phoneE164, byte[] imageBytes, String mimeType, String caption) {
+        if (properties.instanceToken() == null || properties.instanceToken().isBlank()) {
+            throw new IllegalStateException(
+                    "EVOLUTION_INSTANCE_TOKEN não configurado — confira backend/.env "
+                            + "e o working directory do processo (deve ser backend/).");
+        }
+        if (imageBytes == null || imageBytes.length == 0) {
+            throw new IllegalArgumentException("imageBytes vazio");
+        }
+
+        String number = phoneE164 != null && phoneE164.startsWith("+")
+                ? phoneE164.substring(1)
+                : phoneE164;
+        String base64 = Base64.getEncoder().encodeToString(imageBytes);
+
+        SendMediaRequest body = new SendMediaRequest(
+                number, "image", mimeType, base64,
+                caption == null || caption.isBlank() ? null : caption);
+
+        restClient.post()
+                .uri("/send/media")
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+
+        log.info("Mídia enviada via Evolution instance={} phone={} bytes={}",
+                properties.instance(), phoneE164, imageBytes.length);
+    }
+
     /** Payload do {@code POST /message/sendText/{instance}}. */
     private record SendTextRequest(String number, String text) {}
+
+    /** Payload do {@code POST /send/media} (Evolution Go). */
+    private record SendMediaRequest(
+            String number,
+            String mediatype,
+            String mimetype,
+            String media,
+            String caption
+    ) {}
 }
