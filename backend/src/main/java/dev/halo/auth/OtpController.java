@@ -2,6 +2,7 @@ package dev.halo.auth;
 
 import dev.halo.user.InvalidPhoneException;
 import dev.halo.user.User;
+import dev.halo.user.UserController;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -88,7 +89,8 @@ public class OtpController {
 
         VerifyResponse body = new VerifyResponse(
                 access.token(),
-                access.expiresIn().toSeconds());
+                access.expiresIn().toSeconds(),
+                UserController.MeResponse.from(user));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
@@ -105,11 +107,17 @@ public class OtpController {
     ) {}
 
     /**
-     * Resposta do {@code POST /auth/otp/verify}. O refresh token vai em
-     * cookie httpOnly e não aparece no body.
+     * Resposta do {@code POST /auth/otp/verify} e do {@code POST /auth/refresh}.
+     * O refresh token vai em cookie httpOnly e não aparece no body.
      *
      * @param accessToken JWT HMAC-SHA256 com TTL de {@code expiresIn} segundos.
      * @param expiresIn   tempo de vida do access token em segundos.
+     * @param user        snapshot do {@link User} autenticado — economiza um
+     *                    {@code GET /me} subsequente do frontend.
      */
-    public record VerifyResponse(String accessToken, long expiresIn) {}
+    public record VerifyResponse(
+            String accessToken,
+            long expiresIn,
+            UserController.MeResponse user
+    ) {}
 }

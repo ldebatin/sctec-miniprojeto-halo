@@ -1,6 +1,7 @@
 package dev.halo.auth;
 
 import dev.halo.user.User;
+import dev.halo.user.UserController;
 import dev.halo.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -67,7 +68,9 @@ public class AuthController {
                 rotated.issued().token(), rotated.issued().ttl());
 
         OtpController.VerifyResponse body = new OtpController.VerifyResponse(
-                access.token(), access.expiresIn().toSeconds());
+                access.token(),
+                access.expiresIn().toSeconds(),
+                UserController.MeResponse.from(user));
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())

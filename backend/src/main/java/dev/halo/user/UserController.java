@@ -50,7 +50,7 @@ public class UserController {
     ) {}
 
     public record MeResponse(UUID id, String name, String phone, Instant createdAt) {
-        static MeResponse from(User user) {
+        public static MeResponse from(User user) {
             return new MeResponse(user.getId(), user.getName(), user.getPhone(), user.getCreatedAt());
         }
     }
