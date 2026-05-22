@@ -9,6 +9,7 @@ import ExpensesPage from './pages/ExpensesPage'
 import ExpenseDetailPage from './pages/ExpenseDetailPage'
 
 import ProfilePage from './pages/ProfilePage'
+import CategoriesPage from './pages/CategoriesPage'
 
 // Guarda de rota: redireciona para /login quando não há sessão ativa
 // BottomNav incluído aqui para aparecer em todas as rotas protegidas
@@ -51,6 +52,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ExpenseDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categorias"
+        element={
+          <ProtectedRoute>
+            <CategoriesPage />
           </ProtectedRoute>
         }
       />
