@@ -204,13 +204,12 @@ export default function ExpensesPage() {
                     onClick={() => navigate(`/lancamentos/${expense.id}`)}
                     className="flex items-center gap-3 p-3 border-b border-gray-50 w-full text-left hover:bg-gray-50 transition-colors"
                   >
-                    {/* Círculo colorido com o ícone da categoria */}
-                    <div
-                      className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ backgroundColor: cat?.color ?? '#e5e7eb' }}
-                    >
-                      <CategoryIcon name={cat?.icon} className="w-5 h-5 text-white" />
-                    </div>
+                    {/* Badge com o ícone da categoria (CategoryIcon já encapsula o círculo) */}
+                    <CategoryIcon
+                      name={cat?.icon ?? 'circle-help'}
+                      color={cat?.color ?? '#9CA3AF'}
+                      size="md"
+                    />
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">

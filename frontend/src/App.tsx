@@ -10,6 +10,7 @@ import ExpensesPage from './pages/ExpensesPage'
 import ExpenseDetailPage from './pages/ExpenseDetailPage'
 
 import ProfilePage from './pages/ProfilePage'
+import CategoriesPage from './pages/CategoriesPage'
 
 // Guarda de rota: redireciona para /login quando não há sessão ativa.
 // Enquanto isHydrating for true (tentativa de silentRefresh no boot), segura
@@ -73,6 +74,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <ExpenseDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/categorias"
+        element={
+          <ProtectedRoute>
+            <CategoriesPage />
           </ProtectedRoute>
         }
       />

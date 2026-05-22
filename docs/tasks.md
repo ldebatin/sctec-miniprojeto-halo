@@ -626,10 +626,10 @@
 **Entrega:** página de categorias mostrando globais e customizadas com ícone e cor. Botão "+ Nova" e botão de editar em cada uma abrem BottomSheet com formulário.
 
 **Critérios de aceitação:**
-- [ ] Lista visualmente clara separando globais e customizadas.
-- [ ] Form de criar/editar com input de nome, seletor de ícone (lista de lucide-react), seletor de cor (paleta predefinida).
-- [ ] Categoria customizada pode ser excluída com modal de confirmação.
-- [ ] Categoria global tem botão "Personalizar" que abre o form pré-preenchido.
+- [x] Lista visualmente clara separando globais e customizadas.
+- [x] Form de criar/editar com input de nome, seletor de ícone (lista de lucide-react), seletor de cor (paleta predefinida).
+- [x] Categoria customizada pode ser excluída com modal de confirmação.
+- [x] Categoria global tem botão "Personalizar" que abre o form pré-preenchido.
 
 ---
 

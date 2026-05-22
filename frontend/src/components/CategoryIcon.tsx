@@ -1,13 +1,25 @@
 import {
+  Baby,
   Banknote,
+  BookOpen,
   Car,
   CircleHelp,
+  Coffee,
+  Dog,
+  Dumbbell,
   Ellipsis,
+  Fuel,
+  Gamepad2,
+  Gift,
   GraduationCap,
   Heart,
   House,
+  Music,
+  Pill,
+  Plane,
   Shirt,
   ShoppingCart,
+  Smartphone,
   Sparkles,
   TrendingUp,
   Utensils,
@@ -15,47 +27,67 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 
-// Mapeia o nome em kebab-case salvo em categories.icon (migrations V4/V5)
-// para o componente Lucide correspondente. Inclui apelidos para ícones de
-// registros antigos copiados antes da V5 — 'question-circle' (V3 →
-// 'circle-help'), 'ellipsis-horizontal' (Heroicons → 'ellipsis'),
-// 'fork-knife' (V4 → 'utensils' na V5).
-const ICONS: Record<string, LucideIcon> = {
-  banknote: Banknote,
-  car: Car,
-  'circle-help': CircleHelp,
-  ellipsis: Ellipsis,
-  'ellipsis-horizontal': Ellipsis,
+/** Aliases de ícones legados (V4) → componentes lucide-react atuais. */
+const ICON_ALIASES: Record<string, LucideIcon> = {
   'fork-knife': Utensils,
-  'graduation-cap': GraduationCap,
-  heart: Heart,
-  house: House,
-  'question-circle': CircleHelp,
-  shirt: Shirt,
-  'shopping-cart': ShoppingCart,
-  sparkles: Sparkles,
-  'trending-up': TrendingUp,
-  utensils: Utensils,
-  wrench: Wrench,
+  home: House,
+  'academic-cap': GraduationCap,
+  banknotes: Banknote,
+  'ellipsis-horizontal': Ellipsis,
 }
 
-interface CategoryIconProps {
-  name: string | undefined
+const ICON_MAP: Record<string, LucideIcon> = {
+  utensils: Utensils,
+  'shopping-cart': ShoppingCart,
+  car: Car,
+  sparkles: Sparkles,
+  heart: Heart,
+  house: House,
+  'graduation-cap': GraduationCap,
+  shirt: Shirt,
+  wrench: Wrench,
+  'trending-up': TrendingUp,
+  banknote: Banknote,
+  ellipsis: Ellipsis,
+  'circle-help': CircleHelp,
+  coffee: Coffee,
+  dog: Dog,
+  dumbbell: Dumbbell,
+  plane: Plane,
+  gift: Gift,
+  smartphone: Smartphone,
+  baby: Baby,
+  'book-open': BookOpen,
+  music: Music,
+  'gamepad-2': Gamepad2,
+  pill: Pill,
+  fuel: Fuel,
+}
+
+export function resolveCategoryIcon(iconName: string): LucideIcon {
+  const key = iconName.trim().toLowerCase()
+  return ICON_ALIASES[key] ?? ICON_MAP[key] ?? CircleHelp
+}
+
+type CategoryIconProps = {
+  name: string
+  color: string
+  size?: 'sm' | 'md'
   className?: string
 }
 
-/**
- * Renderiza o ícone de uma categoria. Para nomes desconhecidos pelo set
- * Lucide, devolve o próprio texto — assim categorias customizadas que
- * gravaram um emoji em {@code icon} (ex.: "📦") seguem aparecendo.
- */
-export default function CategoryIcon({ name, className }: CategoryIconProps) {
-  if (!name) return <CircleHelp className={className} aria-hidden="true" />
-  const Icon = ICONS[name]
-  if (Icon) return <Icon className={className} aria-hidden="true" />
+export default function CategoryIcon({ name, color, size = 'md', className = '' }: CategoryIconProps) {
+  const Icon = resolveCategoryIcon(name)
+  const dim = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'
+  const box = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+
   return (
-    <span className={className} aria-hidden="true">
-      {name}
+    <span
+      className={`${box} rounded-full flex items-center justify-center flex-shrink-0 ${className}`}
+      style={{ backgroundColor: `${color}22`, color }}
+      aria-hidden="true"
+    >
+      <Icon className={dim} strokeWidth={2} />
     </span>
   )
 }
