@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <title>Projeto Halo — Apresentação inicial (SCTEC IA para DEVs)</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+
+    <style>
+      :root {
+        --halo-primary: #4f46e5;
+        --halo-accent: #0ea5e9;
+        --halo-ink: #0f172a;
+        --halo-muted: #475569;
+        --halo-soft: #f1f5f9;
+      }
+
+      .reveal {
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: var(--halo-ink);
+        font-size: 28px;
+      }
+
+      .reveal h1,
+      .reveal h2,
+      .reveal h3 {
+        font-weight: 700;
+        color: var(--halo-ink);
+        text-transform: none;
+        letter-spacing: -0.01em;
+        line-height: 1.15;
+      }
+
+      .reveal h1 { font-size: 2.2em; margin-bottom: 0.3em; }
+      .reveal h2 { font-size: 1.35em; margin: 0 0 0.5em; }
+      .reveal h3 { font-size: 0.95em; color: var(--halo-primary); margin: 0 0 0.4em; }
+
+      .reveal p { margin: 0.35em 0; line-height: 1.4; }
+
+      .reveal section {
+        text-align: left;
+      }
+
+      .reveal .slide-number {
+        background: transparent;
+        color: var(--halo-muted);
+        font-size: 0.75em;
+      }
+
+      .reveal .accent { color: var(--halo-primary); }
+      .reveal .muted { color: var(--halo-muted); }
+      .reveal .small { font-size: 0.75em; line-height: 1.4; }
+      .reveal .smaller { font-size: 0.6em; line-height: 1.4; }
+
+      .reveal .chip {
+        display: inline-block;
+        padding: 0.15em 0.6em;
+        border-radius: 999px;
+        background: var(--halo-soft);
+        color: var(--halo-primary);
+        font-size: 0.55em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-bottom: 0.4em;
+      }
+
+      .reveal ul { margin: 0.2em 0 0.2em 1em; }
+      .reveal li { margin-bottom: 0.2em; line-height: 1.35; }
+      .reveal li strong { color: var(--halo-primary); }
+
+      .reveal .cols {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1em;
+        align-items: start;
+      }
+
+      .reveal .card {
+        background: var(--halo-soft);
+        border-left: 3px solid var(--halo-primary);
+        padding: 0.6em 0.8em;
+        border-radius: 6px;
+      }
+
+      .reveal .card h3 {
+        margin: 0 0 0.3em;
+        font-size: 0.8em;
+      }
+
+      .reveal .card p,
+      .reveal .card ul {
+        margin: 0;
+        font-size: 0.65em;
+        color: var(--halo-muted);
+        line-height: 1.35;
+      }
+
+      .reveal .card ul { margin-left: 0.9em; }
+
+      .reveal pre {
+        font-size: 0.45em;
+        box-shadow: none;
+        background: var(--halo-ink);
+        border-radius: 6px;
+        margin: 0.4em 0;
+      }
+
+      .reveal pre code {
+        padding: 0.7em 0.9em;
+        max-height: none;
+      }
+
+      .reveal blockquote {
+        border-left: 3px solid var(--halo-accent);
+        background: var(--halo-soft);
+        padding: 0.5em 0.8em;
+        font-style: normal;
+        font-size: 0.75em;
+        color: var(--halo-ink);
+        box-shadow: none;
+        margin: 0.4em 0;
+        line-height: 1.4;
+      }
+
+      .reveal .footer {
+        position: absolute;
+        bottom: 0.6em;
+        left: 1.2em;
+        right: 1.2em;
+        font-size: 0.45em;
+        color: var(--halo-muted);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .reveal table {
+        font-size: 0.65em;
+        margin: 0.3em 0;
+      }
+
+      .reveal table th,
+      .reveal table td { padding: 0.2em 0.5em; }
+
+      .reveal table th {
+        color: var(--halo-primary);
+        border-bottom: 2px solid var(--halo-primary);
+      }
+
+      .reveal .cover {
+        text-align: center;
+      }
+
+      .reveal .cover .chip {
+        font-size: 0.5em;
+      }
+
+      .reveal .cover h1 {
+        font-size: 3em;
+        margin-bottom: 0.1em;
+      }
+
+      .reveal .cover .subtitle {
+        color: var(--halo-muted);
+        font-size: 1em;
+        margin-bottom: 1.5em;
+      }
+
+      .reveal .cover .team {
+        font-size: 0.55em;
+        color: var(--halo-muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+
+        <!-- Capa (não conta como um dos 3 slides de conteúdo) -->
+        <section class="cover">
+          <span class="chip">SCTEC · IA para DEVs</span>
+          <h1>Projeto <span class="accent">Halo</span></h1>
+          <p class="subtitle">Controle de gastos pessoais via WhatsApp, com IA estrutural ao produto</p>
+          <p class="team">
+            Alisson Peter de Sena · Antônio Carlos Castro da Silva · Herik Marcio Santos de Oliveira<br/>
+            Luiz Fernando Debatin · Wendel dos Santos Reis
+          </p>
+          <div class="footer">
+            <span>Mini-projeto avaliativo · 2026</span>
+            <span>Apresentação inicial</span>
+          </div>
+        </section>
+
+        <!-- Slide 1 — O problema -->
+        <section>
+          <span class="chip">01 · O problema</span>
+          <h2>Quem quer se organizar <span class="accent">desiste antes</span> de ver valor</h2>
+
+          <div class="cols">
+            <div>
+              <p class="muted small">
+                Apps de controle financeiro exigem <strong>mudança de contexto</strong>:
+                abrir app, navegar, preencher formulário, escolher categoria.
+                O esforço diário supera o benefício a curto prazo — e o hábito não se forma.
+              </p>
+
+              <blockquote class="small">
+                "Já tentei planilha (esqueci de preencher),<br/>
+                 já baixei app (parei na 2ª semana)."<br/>
+                <span class="muted smaller">— Carla, persona-alvo (PRD §2.1)</span>
+              </blockquote>
+            </div>
+
+            <div>
+              <div class="card">
+                <h3>Como o Halo resolve</h3>
+                <p>
+                  Canal primário no <strong>WhatsApp</strong> — onde a pessoa já está dezenas de vezes ao dia.
+                  Basta escrever:
+                </p>
+                <pre><code class="language-text">Mercado 87,30</code></pre>
+                <p>
+                  A IA categoriza e arquiva. O usuário recebe a confirmação em segundos,
+                  sem abrir nenhum app novo.
+                </p>
+              </div>
+
+              <p class="smaller muted" style="margin-top: 0.6em;">
+                Hipótese do MVP: pessoa em início de organização financeira mantém o hábito por
+                <strong>≥ 4 semanas</strong> quando a barreira é só uma mensagem.
+              </p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <span>Projeto Halo · SCTEC IA para DEVs</span>
+            <span>1 / 3</span>
+          </div>
+        </section>
+
+        <!-- Slide 2 — IA como parte do produto -->
+        <section>
+          <span class="chip">02 · A IA no produto</span>
+          <h2>A IA <span class="accent">não é ferramenta</span> — é o que torna o produto possível</h2>
+
+          <div class="cols">
+            <div>
+              <h3>De texto livre a dado estruturado</h3>
+              <p class="small muted">
+                Mensagem do usuário → <code>HttpGeminiClient.parseExpense()</code> → JSON pronto para persistir:
+              </p>
+              <pre><code class="language-json">{
+  "description": "Mercado",
+  "amount": 87.30,
+  "category_hint": "Mercado",
+  "occurred_at": "2026-05-22"
+}</code></pre>
+
+              <p class="small muted" style="margin-top: 0.4em;">
+                Sem IA, o usuário teria que escolher categoria a cada gasto —
+                recriando a fricção que o produto quer eliminar.
+                <strong>A IA é estrutural ao produto.</strong>
+              </p>
+            </div>
+
+            <div>
+              <div class="card">
+                <h3>Decisões de engenharia de prompt</h3>
+                <ul class="small">
+                  <li><strong>Gemini 2.5 Flash</strong> — latência &lt; 3s e baixo custo</li>
+                  <li><strong>temperature 0.2</strong> — classificação, não criação</li>
+                  <li><strong>responseMimeType JSON</strong> — saída garantida estruturada</li>
+                  <li><strong>Categorias injetadas no prompt</strong> — vocabulário restrito ao banco</li>
+                  <li><strong>Sentinel <code>NOT_EXPENSE</code></strong> — separa intenção de falha</li>
+                </ul>
+              </div>
+
+              <div class="card" style="margin-top: 0.6em; border-left-color: var(--halo-accent);">
+                <h3 style="color: var(--halo-accent);">Resiliência e observabilidade</h3>
+                <ul class="small">
+                  <li><strong>Fallback heurístico</strong> (regex em Java): se a IA cair, o gasto ainda é salvo</li>
+                  <li><strong>Tabela <code>ai_log</code></strong>: tokens, latência, custo e status por chamada</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <span>Projeto Halo · SCTEC IA para DEVs</span>
+            <span>2 / 3</span>
+          </div>
+        </section>
+
+        <!-- Slide 3 — Viabilidade técnica -->
+        <section>
+          <span class="chip">03 · Viabilidade técnica inicial</span>
+          <h2>Stack enxuta, custo desprezível, <span class="accent">base já em pé</span></h2>
+
+          <div class="cols">
+            <div>
+              <h3>Stack</h3>
+              <ul class="small">
+                <li><strong>Backend</strong> — Spring Boot 3.3 + Java 21 + JPA + Flyway</li>
+                <li><strong>Frontend</strong> — React 18 + Vite + Tailwind (PWA mobile-first)</li>
+                <li><strong>Dados</strong> — PostgreSQL 16, timestamps em UTC, UUID v7</li>
+                <li><strong>WhatsApp</strong> — Evolution GO self-hosted via webhook</li>
+                <li><strong>IA</strong> — Google Gemini 2.5 Flash via REST</li>
+                <li><strong>Infra</strong> — Docker Compose em VPS única (Traefik + TLS)</li>
+              </ul>
+
+              <h3 style="margin-top: 0.5em;">Status</h3>
+              <ul class="small">
+                <li><strong>Fase 0:</strong> 100% concluída (T-001 → T-008)</li>
+                <li><strong>Fase 1:</strong> pipeline IA + fallback + <code>ai_log</code> em pé</li>
+                <li><strong>CI</strong> em cada PR: <code>mvn verify</code> + <code>npm build</code></li>
+              </ul>
+            </div>
+
+            <div>
+              <div class="card">
+                <h3>Custo de IA por usuário/mês</h3>
+                <table>
+                  <thead>
+                    <tr><th>Cenário</th><th>Gastos/mês</th><th>R$/mês</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Mínimo</td><td>~40</td><td>~R$ 0,005</td></tr>
+                    <tr><td>Típico</td><td>~100</td><td>~R$ 0,013</td></tr>
+                    <tr><td>Intenso</td><td>~300</td><td>~R$ 0,038</td></tr>
+                  </tbody>
+                </table>
+                <p class="smaller muted" style="margin-top: 0.4em;">
+                  Meta era &lt; R$ 1,00/usuário/mês — projeção fica <strong>25× abaixo</strong>
+                  mesmo no cenário intenso.
+                </p>
+              </div>
+
+              <div class="card" style="margin-top: 0.6em; border-left-color: var(--halo-accent);">
+                <h3 style="color: var(--halo-accent);">Riscos e próximos passos</h3>
+                <ul class="small">
+                  <li><strong>Acurácia em campo</strong> — validar com smoke test (T-018)</li>
+                  <li><strong>Cache de classificação</strong> — Caffeine por hash (T-043) reduz ~60% das chamadas</li>
+                  <li><strong>Retry no cliente Gemini</strong> — absorver falhas transientes antes do fallback</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="footer">
+            <span>Projeto Halo · SCTEC IA para DEVs</span>
+            <span>3 / 3</span>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        slideNumber: false,
+        controls: true,
+        progress: true,
+        transition: "slide",
+        width: 1280,
+        height: 800,
+        margin: 0.04,
+        minScale: 0.2,
+        maxScale: 2.0,
+        plugins: [RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
+</html>
