@@ -658,10 +658,10 @@
 **Entrega:** roteador identifica "resumo", "resumo do mês", "resumo &lt;mês&gt;", "resumo &lt;mês&gt; &lt;ano&gt;" e dispara o `ReportService`. Fallback para Gemini se a regex falhar (interpretação solta).
 
 **Critérios de aceitação:**
-- [ ] Reconhece meses em pt-BR completos e abreviados (jan, fev, ...).
-- [ ] Sem mês informado → mês corrente.
-- [ ] Ano opcional; default ao ano corrente.
-- [ ] Sem dados no período → mensagem amigável e fluxo encerra (não tenta gráfico).
+- [x] Reconhece meses em pt-BR completos e abreviados (jan, fev, ...).
+- [x] Sem mês informado → mês corrente.
+- [x] Ano opcional; default ao ano corrente.
+- [x] Sem dados no período → mensagem amigável e fluxo encerra (não tenta gráfico).
 
 ---
 
