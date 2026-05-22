@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom'
 import axios from 'axios'
 import { useProfile, useUpdateProfile } from '../hooks/useProfile'
 import { useAuthStore } from '../stores/auth'
-import { getCategories, createCategory, deleteCategory } from '../api/categories'
 import { logout as logoutApi } from '../api/auth'
 
 function getInitials(name: string): string {
