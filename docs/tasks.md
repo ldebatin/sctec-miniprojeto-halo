@@ -738,10 +738,10 @@
 **Entrega:** antes de chamar Gemini, busca em cache (Caffeine, in-memory) por hash da descrição normalizada (lowercase, sem acento, sem números). TTL 30 dias.
 
 **Critérios de aceitação:**
-- [ ] Cache hit não chama Gemini (zero token).
-- [ ] Cache invalidado quando categoria é renomeada/desativada.
-- [ ] Limite de tamanho 10k entradas (LRU).
-- [ ] Hit rate é loggado para análise.
+- [x] Cache hit não chama Gemini (zero token).
+- [x] Cache invalidado quando categoria é renomeada/desativada.
+- [x] Limite de tamanho 10k entradas (LRU).
+- [x] Hit rate é loggado para análise.
 
 ---
 

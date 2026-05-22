@@ -1,5 +1,6 @@
 package dev.halo.category;
 
+import dev.halo.ai.ClassificationCache;
 import dev.halo.user.User;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -54,6 +55,7 @@ public class CategoryController {
 
     private final CategoryRepository categoryRepository;
     private final CategoryGlobalRepository categoryGlobalRepository;
+    private final ClassificationCache classificationCache;
 
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getCategories(@AuthenticationPrincipal User user) {
@@ -94,6 +96,7 @@ public class CategoryController {
         Category cat = newCategory(user.getId(), null,
                 req.name.trim(), req.icon.trim(), req.color.trim());
         categoryRepository.save(cat);
+        classificationCache.invalidate(user.getId());
         return ResponseEntity.ok(new CategoryResponse(cat));
     }
 
@@ -130,6 +133,7 @@ public class CategoryController {
 
         Category copy = newCategory(user.getId(), globalId, global.getName(), icon, color);
         categoryRepository.save(copy);
+        classificationCache.invalidate(user.getId());
         return ResponseEntity.status(201).body(new CategoryResponse(copy));
     }
 
@@ -162,6 +166,7 @@ public class CategoryController {
         cat.setColor(req.color.trim());
         cat.setUpdatedAt(Instant.now());
         categoryRepository.save(cat);
+        classificationCache.invalidate(user.getId());
         return ResponseEntity.ok(new CategoryResponse(cat));
     }
 
@@ -179,6 +184,7 @@ public class CategoryController {
         cat.setActive(false);
         cat.setUpdatedAt(Instant.now());
         categoryRepository.save(cat);
+        classificationCache.invalidate(user.getId());
         return ResponseEntity.noContent().build();
     }
 
