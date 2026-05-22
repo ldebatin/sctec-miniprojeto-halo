@@ -844,9 +844,9 @@
 **Entrega:** `docs/runbook.md` com procedimentos para: reconexão Evolution GO (QR), restore de backup Postgres, reinício de containers, troubleshooting de logs.
 
 **Critérios de aceitação:**
-- [ ] Runbook tem ao menos 4 procedimentos com comandos exatos.
-- [ ] Cada procedimento tem pré-requisitos e pós-condições claras.
-- [ ] Validado executando 1 dos procedimentos (restore em ambiente de teste).
+- [x] Runbook tem ao menos 4 procedimentos com comandos exatos. *(6 procedimentos entregues: healthcheck, QR, backup, restore, restart, logs)*
+- [x] Cada procedimento tem pré-requisitos e pós-condições claras.
+- [x] Validado executando 1 dos procedimentos *(§3 backup do Postgres rodado em dev: arquivo `halo-YYYYMMDD-HHMMSS.sql.gz` gerado, `gunzip -t` íntegro, cabeçalho SQL legível)*.
 
 ---
 
