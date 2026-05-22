@@ -422,11 +422,11 @@
 **Entrega:** endpoints `GET /expenses` (paginado + filtros), `POST /expenses`, `GET /expenses/{id}`, `PATCH /expenses/{id}`, `DELETE /expenses/{id}` (soft delete).
 
 **Critérios de aceitação:**
-- [ ] `GET /expenses` aceita query params: `from`, `to`, `category_id`, `q` (busca em description), `page`, `size`. Ordena por `occurred_at desc`.
-- [ ] `POST /expenses` valida: description (1-200 chars), amount > 0, category_id existente para o user, occurred_at obrigatório. `source = 'WEB'`.
-- [ ] `PATCH /expenses/{id}` aceita os mesmos campos do POST como opcionais; verifica que o gasto pertence ao user.
-- [ ] `DELETE /expenses/{id}` faz soft delete (`deleted_at = now()`); gastos deletados não aparecem em GET.
-- [ ] Todas as rotas exigem JWT; tentativa de acessar gasto de outro user retorna 404 (não 403, para não vazar existência).
+- [x] `GET /expenses` aceita query params: `from`, `to`, `category_id`, `q` (busca em description), `page`, `size`. Ordena por `occurred_at desc`.
+- [x] `POST /expenses` valida: description (1-200 chars), amount > 0, category_id existente para o user, occurred_at obrigatório. `source = 'WEB'`.
+- [x] `PATCH /expenses/{id}` aceita os mesmos campos do POST como opcionais; verifica que o gasto pertence ao user.
+- [x] `DELETE /expenses/{id}` faz soft delete (`deleted_at = now()`); gastos deletados não aparecem em GET.
+- [x] Todas as rotas exigem JWT; tentativa de acessar gasto de outro user retorna 404 (não 403, para não vazar existência).
 
 ---
 
@@ -674,10 +674,10 @@
 **Entrega:** `ReportService.monthly(userId, yearMonth)` retorna totais por categoria + total geral + lista de gastos. Endpoints `GET /reports/monthly?month=YYYY-MM` e `GET /reports/categories?from=&to=`.
 
 **Critérios de aceitação:**
-- [ ] Query usa `GROUP BY category, date_trunc('month', occurred_at)`.
-- [ ] Resposta inclui: total, breakdown por categoria (id, name, color, total, %).
-- [ ] Endpoint REST autenticado; só retorna dados do user.
-- [ ] Lançamentos soft-deletados são excluídos.
+- [x] Query usa `GROUP BY category, date_trunc('month', occurred_at)`.
+- [x] Resposta inclui: total, breakdown por categoria (id, name, color, total, %).
+- [x] Endpoint REST autenticado; só retorna dados do user.
+- [x] Lançamentos soft-deletados são excluídos.
 
 ---
 
@@ -690,11 +690,11 @@
 **Entrega:** `WhatsappTextReportFormatter` que recebe o `MonthlyReport` e produz uma string com tabela monoespaçada (entre crases triplas, que o WhatsApp renderiza como código).
 
 **Critérios de aceitação:**
-- [ ] Cabeçalho com mês/ano em pt-BR.
-- [ ] Colunas: Categoria | Valor | %.
-- [ ] Linha final de total.
-- [ ] Valores em pt-BR (R$ 1.234,56).
-- [ ] Output cabe em 1 mensagem (sem ultrapassar limites do WhatsApp).
+- [x] Cabeçalho com mês/ano em pt-BR.
+- [x] Colunas: Categoria | Valor | %.
+- [x] Linha final de total.
+- [x] Valores em pt-BR (R$ 1.234,56).
+- [x] Output cabe em 1 mensagem (sem ultrapassar limites do WhatsApp).
 
 ---
 
@@ -707,10 +707,10 @@
 **Entrega:** `ChartGenerator.monthlyPie(report)` que monta o config JSON do Chart.js, chama `https://quickchart.io/chart`, recebe imagem PNG e retorna `byte[]`.
 
 **Critérios de aceitação:**
-- [ ] Gráfico de pizza com cores das categorias.
-- [ ] Tipo de gráfico (pie/bar) escolhido conforme nº de categorias (≤ 6 = pie, > 6 = bar).
-- [ ] Falha no QuickChart degrada para envio apenas da tabela em texto (sem imagem).
-- [ ] Timeout de 5s na chamada.
+- [x] Gráfico de pizza com cores das categorias.
+- [x] Tipo de gráfico (pie/bar) escolhido conforme nº de categorias (≤ 6 = pie, > 6 = bar).
+- [x] Falha no QuickChart degrada para envio apenas da tabela em texto (sem imagem).
+- [x] Timeout de 5s na chamada.
 
 ---
 

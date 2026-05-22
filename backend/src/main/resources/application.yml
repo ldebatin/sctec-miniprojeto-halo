@@ -81,6 +81,14 @@ halo:
       - link
       - web
       - acessar
+  report:
+    quickchart:
+      # Endpoint público da QuickChart (analise-tecnica §9.3, Opção A).
+      # Em testes pode apontar para um mock; em produção pode ser uma
+      # instância self-hosted (quickchart.io tem imagem docker).
+      base-url: ${QUICKCHART_BASE_URL:https://quickchart.io}
+      # Timeout duro da chamada (RF-15). Falha → fallback texto-only.
+      timeout: ${QUICKCHART_TIMEOUT:5s}
   security:
     # Origens autorizadas pelo CORS (analise-tecnica §10.3). Lista
     # separada por vírgula. Default cobre o Vite dev server local; em
