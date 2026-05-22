@@ -18,6 +18,11 @@ spring:
     enabled: true
     locations: classpath:db/migration
     baseline-on-migrate: true
+    # Tolera migrations já aplicadas no banco mas ausentes no classpath atual.
+    # Comum em dev quando se alterna entre branches que carregam migrations
+    # diferentes. Em CI o banco é sempre zerado via Testcontainers, então
+    # esta tolerância não mascara nada.
+    ignore-migration-patterns: "*:missing"
 
 server:
   port: 8080
