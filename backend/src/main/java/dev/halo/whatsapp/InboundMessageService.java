@@ -5,6 +5,7 @@ import dev.halo.user.InvalidPhoneException;
 import dev.halo.user.PhoneNumberService;
 import dev.halo.user.User;
 import dev.halo.user.UserService;
+import dev.halo.whatsapp.command.SummaryCommandHandler;
 import dev.halo.whatsapp.command.WebLinkCommandHandler;
 import dev.halo.whatsapp.conversation.ConversationService;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
@@ -26,9 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>Telefone inválido → log warning, mensagem persistida com {@code user_id=null}.</li>
  *   <li>Telefone válido sem cadastro → delega para {@link ConversationService}
  *       (AWAITING_NAME, T-011).</li>
- *   <li>Telefone válido com cadastro → comando de link web (T-037, RF-10) se
- *       aplicável; senão delega para {@link WhatsappExpenseProcessor}
- *       (parser do Gemini ou fallback heurístico → expense + confirmação).</li>
+ *   <li>Telefone válido com cadastro → comando de link web (T-037, RF-10),
+ *       depois comando de resumo (T-038, RF-15/RF-16); se nenhum dos dois
+ *       reconhecer, delega para {@link WhatsappExpenseProcessor} (parser do
+ *       Gemini ou fallback heurístico → expense + confirmação).</li>
  * </ul>
  */
 @Service
@@ -41,6 +43,7 @@ public class InboundMessageService {
     private final UserService userService;
     private final ConversationService conversationService;
     private final WebLinkCommandHandler webLinkCommandHandler;
+    private final SummaryCommandHandler summaryCommandHandler;
     private final WhatsappExpenseProcessor expenseProcessor;
 
     /**
@@ -114,7 +117,7 @@ public class InboundMessageService {
 
         if (user == null) {
             conversationService.handleAwaitingName(normalizedPhone, content);
-        } else {
+        } else if (!summaryCommandHandler.tryHandle(user, normalizedPhone, content, saved)) {
             expenseProcessor.process(user, saved);
         }
 

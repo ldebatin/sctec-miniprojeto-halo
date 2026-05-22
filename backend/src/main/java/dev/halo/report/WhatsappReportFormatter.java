@@ -61,7 +61,7 @@ public final class WhatsappReportFormatter {
     }
 
     /** Ex.: {@code 2026-05-15} → {@code Maio de 2026}. */
-    static String monthNamePtBr(LocalDate date) {
+    public static String monthNamePtBr(LocalDate date) {
         String month = date.getMonth().getDisplayName(TextStyle.FULL, PT_BR);
         return capitalize(month) + " de " + date.getYear();
     }
