@@ -97,17 +97,17 @@ public class HttpEvolutionClient implements EvolutionClient {
         String number = phoneE164 != null && phoneE164.startsWith("+")
                 ? phoneE164.substring(1)
                 : phoneE164;
+        // Evolution Go espera no campo `url` ou uma URL HTTP, ou base64 puro
+        // (SEM o prefixo `data:<mime>;base64,`). Com data URI ele responde
+        // 400 "invalid base64 encoding" porque tenta decodificar a string
+        // inteira incluindo o prefixo. Validado por curl direto no swagger
+        // local em /swagger/doc.json — schema MediaStruct.
         String base64 = Base64.getEncoder().encodeToString(imageBytes);
-        // Evolution Go espera o campo `url` aceitando data URI (`data:<mime>;base64,...`).
-        // Mandar base64 cru em `media` devolve 400 "URL is required" (validado no swagger
-        // local em /swagger/doc.json — schema MediaStruct).
-        String dataUri = "data:" + (mimeType == null || mimeType.isBlank() ? "image/png" : mimeType)
-                + ";base64," + base64;
 
         SendMediaRequest body = new SendMediaRequest(
                 number,
                 "image",
-                dataUri,
+                base64,
                 caption == null || caption.isBlank() ? null : caption,
                 "halo-summary.png");
 
@@ -130,8 +130,10 @@ public class HttpEvolutionClient implements EvolutionClient {
      *
      * <ul>
      *   <li>{@code type} — "image", "video", "audio", "document".</li>
-     *   <li>{@code url} — URL HTTP **ou** data URI {@code data:<mime>;base64,...}.
-     *       Não há campo separado para base64.</li>
+     *   <li>{@code url} — URL HTTP **ou** base64 cru. Data URI
+     *       ({@code data:<mime>;base64,...}) NÃO funciona: Evolution Go
+     *       tenta decodificar a string inteira como base64, incluindo o
+     *       prefixo, e devolve 400 "invalid base64 encoding".</li>
      *   <li>{@code caption} — texto opcional.</li>
      *   <li>{@code filename} — nome lógico exibido em alguns clientes.</li>
      * </ul>
