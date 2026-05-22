@@ -19,3 +19,8 @@ export async function verifyOtp(
   )
   return data
 }
+
+// DELETE /auth/sessions/current — revoga o refresh token no backend e limpa o cookie (RF-11)
+export async function logout(): Promise<void> {
+  await apiClient.delete('/auth/sessions/current')
+}

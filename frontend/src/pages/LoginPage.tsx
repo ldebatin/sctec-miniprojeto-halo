@@ -71,9 +71,13 @@ export default function LoginPage() {
   const [otpAttempts, setOtpAttempts]       = useState(0)
   const intervalRef                         = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Decrementa o cooldown de reenvio a cada segundo
-  useEffect(() => {
-    if (cooldown <= 0) return
+  // Limpa o intervalo ao desmontar para evitar setState em componente desmontado
+  useEffect(() => () => clearInterval(intervalRef.current ?? undefined), [])
+
+  // Inicia o countdown de N segundos — chame em vez de setCooldown diretamente
+  function startCooldown(seconds = RESEND_COOLDOWN_SECONDS) {
+    clearInterval(intervalRef.current ?? undefined)
+    setCooldown(seconds)
     intervalRef.current = setInterval(() => {
       setCooldown((s) => {
         if (s <= 1) {
@@ -83,8 +87,7 @@ export default function LoginPage() {
         return s - 1
       })
     }, 1000)
-    return () => clearInterval(intervalRef.current!)
-  }, [cooldown])
+  }
 
   // Dois formulários independentes — cada step tem seu próprio estado de validação
   const phoneForm = useForm<PhoneForm>({ defaultValues: { phone: '' } })
@@ -101,7 +104,7 @@ export default function LoginPage() {
       await requestOtp(normalized)
       setNormalizedPhone(normalized)
       setOtpAttempts(0)
-      setCooldown(RESEND_COOLDOWN_SECONDS)
+      startCooldown()
       setStep('otp')
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 429) {
@@ -120,14 +123,16 @@ export default function LoginPage() {
       setAuth(accessToken, user)
       navigate('/', { replace: true })
     } catch (err) {
-      const newAttempts = otpAttempts + 1
-      setOtpAttempts(newAttempts)
-      const remaining = OTP_MAX_ATTEMPTS - newAttempts
-      if (remaining <= 0) {
-        setApiError('Código inválido. Número máximo de tentativas atingido. Solicite um novo código.')
-      } else {
-        setApiError(`Código inválido. ${remaining} tentativa${remaining === 1 ? '' : 's'} restante${remaining === 1 ? '' : 's'}.`)
-      }
+      setOtpAttempts((prev) => {
+        const newAttempts = prev + 1
+        const remaining = OTP_MAX_ATTEMPTS - newAttempts
+        if (remaining <= 0) {
+          setApiError('Código inválido. Número máximo de tentativas atingido. Solicite um novo código.')
+        } else {
+          setApiError(`Código inválido. ${remaining} tentativa${remaining === 1 ? '' : 's'} restante${remaining === 1 ? '' : 's'}.`)
+        }
+        return newAttempts
+      })
     }
   })
 
@@ -138,7 +143,7 @@ export default function LoginPage() {
     try {
       await requestOtp(normalizedPhone)
       setOtpAttempts(0)
-      setCooldown(RESEND_COOLDOWN_SECONDS)
+      startCooldown()
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 429) {
         setApiError('Aguarde antes de solicitar um novo código.')
@@ -149,6 +154,7 @@ export default function LoginPage() {
   }
 
   function handleBack() {
+    clearInterval(intervalRef.current ?? undefined)
     setStep('phone')
     setApiError(null)
     setCooldown(0)
@@ -157,23 +163,24 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col justify-center bg-white">
-      <div className="max-w-sm mx-auto px-6 w-full">
+    <main className="min-h-screen flex flex-col justify-start pt-24 bg-white">
 
-        {/* ── Logo ──────────────────────────────────────────────────────────── */}
-        <div className="flex flex-col items-center mb-10">
-          <div className="w-16 h-16 rounded-full bg-primary-500 flex items-center justify-center mb-4">
-            <WalletIcon />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Halo</h1>
-          <p className="text-sm text-gray-500 mt-1">Seus gastos no WhatsApp</p>
-        </div>
+      {/* ── Logo — fora do container estreito para ocupar mais largura ── */}
+      <div className="flex justify-center mb-6 px-4">
+        <img
+          src="/logo.png"
+          alt="Halo — Controle de gastos pessoais via WhatsApp"
+          className="w-full max-w-[560px] object-contain"
+        />
+      </div>
+
+      <div className="max-w-sm mx-auto px-6 w-full">
 
         {step === 'phone' ? (
 
           /* ── Step 1: Telefone ─────────────────────────────────────────────── */
           <form onSubmit={onPhoneSubmit} noValidate>
-            <p className="text-base font-medium text-gray-700 mb-4">
+            <p className="text-base font-medium text-gray-700 mb-4 text-center">
               Digite seu número de WhatsApp
             </p>
 
@@ -197,7 +204,7 @@ export default function LoginPage() {
                   onChange={(e) => field.onChange(applyPhoneMask(e.target.value))}
                   type="tel"
                   inputMode="tel"
-                  placeholder="(48) 99999-9999"
+                  placeholder="(99) 99999-9999"
                   maxLength={15}
                   autoComplete="tel"
                   aria-invalid={!!phoneForm.formState.errors.phone}
@@ -292,7 +299,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={otpForm.formState.isSubmitting}
+              disabled={otpForm.formState.isSubmitting || otpAttempts >= OTP_MAX_ATTEMPTS}
               className="mt-6 bg-primary-500 text-white rounded-lg py-3 w-full font-medium
                          hover:bg-primary-600 active:bg-primary-700 disabled:opacity-60
                          transition-colors"
@@ -325,20 +332,5 @@ export default function LoginPage() {
         )}
       </div>
     </main>
-  )
-}
-
-// ─── Ícone de carteira (Heroicons 2 — inline para evitar dependência externa) ─
-function WalletIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="w-8 h-8 text-white"
-      aria-hidden="true"
-    >
-      <path d="M2.273 5.625A4.483 4.483 0 015.25 4.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 3H5.25a3 3 0 00-2.977 2.625zM2.273 8.625A4.483 4.483 0 015.25 7.5h13.5c1.141 0 2.183.425 2.977 1.125A3 3 0 0018.75 6H5.25a3 3 0 00-2.977 2.625zM5.25 9a3 3 0 00-3 3v6a3 3 0 003 3h13.5a3 3 0 003-3v-6a3 3 0 00-3-3H15a.75.75 0 000 1.5h3.75a1.5 1.5 0 011.5 1.5v6a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-6a1.5 1.5 0 011.5-1.5H9A.75.75 0 009 9H5.25z" />
-    </svg>
   )
 }

@@ -122,6 +122,8 @@ services:
 volumes:
   halo-pgdata:
     name: halo-pgdata
+  pgadmin_data:
+    name: pgadmin_data
 
 networks:
   halo-net:
