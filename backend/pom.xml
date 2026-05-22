@@ -173,6 +173,13 @@
             <artifactId>spring-boot-testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Cache de classificação por descrição normalizada (T-043, analise-tecnica §9.4).
+             Versão gerenciada pelo Spring Boot BOM. -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
     </dependencies>
 
     <dependencyManagement>

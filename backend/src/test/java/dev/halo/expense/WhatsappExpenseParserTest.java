@@ -4,14 +4,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import dev.halo.ai.ClassificationCache;
 import dev.halo.ai.ExpenseParseResult;
 import dev.halo.ai.GeminiClient;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -21,12 +27,16 @@ import org.junit.jupiter.api.Test;
 class WhatsappExpenseParserTest {
 
     private GeminiClient geminiClient;
+    private ClassificationCache classificationCache;
     private WhatsappExpenseParser parser;
 
     @BeforeEach
     void setUp() {
         geminiClient = mock(GeminiClient.class);
-        parser = new WhatsappExpenseParser(geminiClient);
+        classificationCache = mock(ClassificationCache.class);
+        // Default: cache miss
+        when(classificationCache.getHint(any(), any())).thenReturn(Optional.empty());
+        parser = new WhatsappExpenseParser(geminiClient, classificationCache);
     }
 
     @Test
@@ -81,5 +91,62 @@ class WhatsappExpenseParserTest {
 
         assertThat(result).isNotNull();
         assertThat(result.amount()).isEqualByComparingTo(new BigDecimal("1234.56"));
+    }
+
+    // ----------------------------------------------------------------
+    // Cache de classificação (T-043)
+    // ----------------------------------------------------------------
+
+    @Test
+    void cache_hit_resolve_sem_chamar_o_gemini() {
+        UUID userId = UUID.randomUUID();
+        when(classificationCache.getHint(eq(userId), any())).thenReturn(Optional.of("Mercado"));
+
+        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"), userId);
+
+        assertThat(result).isNotNull();
+        assertThat(result.categoryHint()).isEqualTo("Mercado");
+        assertThat(result.amount()).isEqualByComparingTo(new BigDecimal("87.30"));
+        // Gemini não é chamado
+        verify(geminiClient, never()).parseExpense(any(), any(), any());
+    }
+
+    @Test
+    void cache_miss_chama_gemini_e_popula_o_cache_no_sucesso() {
+        UUID userId = UUID.randomUUID();
+        ExpenseParseResult expected = new ExpenseParseResult(
+                "Mercado", new BigDecimal("87.30"), "Mercado", LocalDate.of(2026, 5, 18));
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(expected);
+
+        ExpenseParseResult result = parser.parse("Mercado 87,30", List.of("Mercado"), userId);
+
+        assertThat(result).isSameAs(expected);
+        verify(classificationCache).putHint(eq(userId), eq("Mercado 87,30"), eq("Mercado"));
+    }
+
+    @Test
+    void cache_hit_sem_amount_no_texto_cai_pro_gemini() {
+        UUID userId = UUID.randomUUID();
+        when(classificationCache.getHint(eq(userId), any())).thenReturn(Optional.of("Lazer"));
+        // Texto sem valor — cache não consegue resolver sozinho
+        ExpenseParseResult fromGemini = new ExpenseParseResult(
+                "Ida ao cinema", new BigDecimal("40"), "Lazer", LocalDate.of(2026, 5, 18));
+        when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(fromGemini);
+
+        ExpenseParseResult result = parser.parse("Cinema com a Carla", List.of("Lazer"), userId);
+
+        assertThat(result).isSameAs(fromGemini);
+        verify(geminiClient).parseExpense(any(), any(), any());
+    }
+
+    @Test
+    void cache_nao_eh_populado_quando_gemini_devolve_categoryHint_null() {
+        UUID userId = UUID.randomUUID();
+        when(geminiClient.parseExpense(any(), any(), any())).thenReturn(null);
+
+        // Texto com valor: fallback heurístico devolve resultado mas com hint=null
+        parser.parse("alguma compra 10", List.of(), userId);
+
+        verify(classificationCache, never()).putHint(any(), any(), any());
     }
 }
