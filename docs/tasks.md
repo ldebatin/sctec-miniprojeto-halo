@@ -577,10 +577,10 @@
 **Entrega:** migration `V2__seed_global_categories.sql` inserindo as 12 categorias globais da [analise-tecnica.md §6.3](./analise-tecnica.md) + "Sem categoria", cada uma com ícone, cor e keywords para auxiliar matching.
 
 **Critérios de aceitação:**
-- [ ] Categorias inseridas: Alimentação, Mercado, Transporte, Lazer, Saúde, Moradia, Educação, Vestuário, Serviços, Investimento, Renda, Outros, Sem categoria.
-- [ ] Cada categoria tem `icon` (lucide-react name) e `color` (hex).
-- [ ] `keywords` (text[]) populado com palavras comuns (ex.: Mercado: ["mercado", "supermercado", "atacadão"]).
-- [ ] Migration é idempotente em re-execução (usa `ON CONFLICT DO NOTHING`).
+- [x] Categorias inseridas: Alimentação, Mercado, Transporte, Lazer, Saúde, Moradia, Educação, Vestuário, Serviços, Investimento, Renda, Outros, Sem categoria. *(inserts em V3 e V4; refinamento em V5)*
+- [x] Cada categoria tem `icon` (lucide-react name) e `color` (hex).
+- [x] `keywords` (text[]) populado com palavras comuns (ex.: Mercado: ["mercado", "supermercado", "atacadão"]).
+- [x] Migration é idempotente em re-execução (V3/V4 usam `ON CONFLICT DO NOTHING`; V5 é UPDATE — repetir é no-op).
 
 ---
 
