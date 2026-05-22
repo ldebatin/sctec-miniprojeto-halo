@@ -9,6 +9,7 @@ import { useExpenses } from '../hooks/useExpenses'
 import { getCategories } from '../api/categories'
 import { createExpense } from '../api/expenses'
 import { useQueryClient } from '@tanstack/react-query'
+import CategoryIcon from '../components/CategoryIcon'
 import type { Category } from '../types'
 
 dayjs.locale('pt-br')
@@ -62,6 +63,13 @@ export default function ExpensesPage() {
     queryKey: ['categories'],
     queryFn: getCategories,
   })
+
+  // Lookup por id usado para resolver nome/cor da categoria em cada linha —
+  // o backend devolve só categoryId em ExpenseResponse, então a junção com
+  // categories acontece no cliente (mesma queryCache já usada nos chips).
+  const categoriesById = useMemo(() => {
+    return new Map((categories ?? []).map((c) => [c.id, c]))
+  }, [categories])
 
   // Filtra localmente por texto de busca
   const filteredExpenses = useMemo(() => {
@@ -188,32 +196,35 @@ export default function ExpensesPage() {
         ) : (
           <>
             <ul className="bg-white rounded-xl shadow-sm overflow-hidden divide-y divide-gray-50">
-              {filteredExpenses.map((expense) => (
+              {filteredExpenses.map((expense) => {
+                const cat = categoriesById.get(expense.categoryId)
+                return (
                 <li key={expense.id}>
                   <button
                     onClick={() => navigate(`/lancamentos/${expense.id}`)}
                     className="flex items-center gap-3 p-3 border-b border-gray-50 w-full text-left hover:bg-gray-50 transition-colors"
                   >
-                    {/* Círculo colorido da categoria */}
+                    {/* Círculo colorido com o ícone da categoria */}
                     <div
-                      className="w-9 h-9 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: expense.category?.color ?? '#e5e7eb' }}
-                      aria-hidden="true"
-                    />
+                      className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
+                      style={{ backgroundColor: cat?.color ?? '#e5e7eb' }}
+                    >
+                      <CategoryIcon name={cat?.icon} className="w-5 h-5 text-white" />
+                    </div>
 
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">
                         {expense.description}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {expense.category?.name ?? 'Sem categoria'} ·{' '}
+                        {cat?.name ?? 'Sem categoria'} ·{' '}
                         {dateLabel(expense.occurredAt)}
                       </p>
                     </div>
 
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <span className="text-sm font-semibold text-gray-800">
-                        {brl.format(expense.amount / 100)}
+                        {brl.format(expense.amount)}
                       </span>
                       <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
                         {expense.source === 'WHATSAPP' ? 'WhatsApp' : 'Web'}
@@ -221,7 +232,8 @@ export default function ExpensesPage() {
                     </div>
                   </button>
                 </li>
-              ))}
+                )
+              })}
             </ul>
 
             {/* Carregar mais */}
@@ -288,7 +300,9 @@ function NovoLancamentoModal({
       setSubmitError(null)
       await createExpense({
         description: values.description,
-        amount: Math.round(parseFloat(values.amount.replace(',', '.')) * 100),
+        // Backend trabalha em reais (numeric(12,2)); o input aceita vírgula
+        // do pt-BR e enviamos um Number direto.
+        amount: parseFloat(values.amount.replace(',', '.')),
         categoryId: values.categoryId,
         occurredAt: values.occurredAt,
       })

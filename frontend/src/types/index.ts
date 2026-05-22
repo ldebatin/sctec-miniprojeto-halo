@@ -34,16 +34,19 @@ export interface ExpensePage {
   size: number
 }
 
-// Resposta do GET /reports/monthly (analise-tecnica.md §11)
+// Resposta do GET /reports/monthly — espelha ReportDtos.MonthlyResponse do
+// backend (T-039, analise-tecnica.md §11). Nomes alinhados ao record Java.
 export interface MonthlyReport {
   month: string
+  from: string
+  to: string
   total: number
-  byCategory: Array<{
+  breakdown: Array<{
     categoryId: string
-    categoryName: string
+    name: string
     color: string
     total: number
     percentage: number
   }>
-  recentExpenses: Expense[]
+  expenses: Expense[]
 }

@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pt-br'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../stores/auth'
 import { useDashboard } from '../hooks/useDashboard'
+import { getCategories } from '../api/categories'
+import CategoryIcon from '../components/CategoryIcon'
 
 dayjs.locale('pt-br')
 
@@ -29,6 +32,17 @@ export default function DashboardPage() {
   const [month] = useState(() => dayjs().format('YYYY-MM'))
 
   const { report, isLoading, isError, refetch } = useDashboard(month)
+
+  // /categories é a fonte canônica de nome/cor/ícone — mesma cache usada
+  // pela página de lançamentos, então é uma query a mais só no primeiro
+  // boot. O report.breakdown não tem o campo icon.
+  const { data: categories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+  })
+  const categoryById = useMemo(() => {
+    return new Map((categories ?? []).map((c) => [c.id, c]))
+  }, [categories])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -73,15 +87,15 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <SkeletonList rows={4} />
-          ) : !report?.byCategory.length ? (
+          ) : !report?.breakdown.length ? (
             <EmptyState message="Nenhum gasto registrado ainda." />
           ) : (
             <ul className="space-y-3">
-              {report.byCategory.slice(0, 5).map((cat) => (
+              {report.breakdown.slice(0, 5).map((cat) => (
                 <li key={cat.categoryId} className="bg-white rounded-xl p-3 shadow-sm">
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-sm font-medium text-gray-700">
-                      {cat.categoryName}
+                      {cat.name}
                     </span>
                     <span className="text-sm font-semibold text-gray-800">
                       {brl.format(cat.total)}
@@ -113,28 +127,31 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <SkeletonList rows={3} />
-          ) : !report?.recentExpenses.length ? (
+          ) : !report?.expenses.length ? (
             <EmptyState message="Nenhum lançamento encontrado." />
           ) : (
             <ul className="space-y-2">
-              {report.recentExpenses.map((expense) => (
+              {report.expenses.map((expense) => {
+                const cat = categoryById.get(expense.categoryId)
+                return (
                 <li
                   key={expense.id}
                   className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3"
                 >
-                  {/* Círculo colorido da categoria */}
+                  {/* Círculo colorido com o ícone da categoria */}
                   <div
-                    className="w-9 h-9 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: expense.category?.color ?? '#e5e7eb' }}
-                    aria-hidden="true"
-                  />
+                    className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: cat?.color ?? '#e5e7eb' }}
+                  >
+                    <CategoryIcon name={cat?.icon} className="w-5 h-5 text-white" />
+                  </div>
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">
                       {expense.description}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {expense.category?.name ?? 'Sem categoria'} ·{' '}
+                      {cat?.name ?? 'Sem categoria'} ·{' '}
                       {dateLabel(expense.occurredAt)}
                     </p>
                   </div>
@@ -143,7 +160,8 @@ export default function DashboardPage() {
                     {brl.format(expense.amount)}
                   </span>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </section>

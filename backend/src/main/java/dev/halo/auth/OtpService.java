@@ -102,7 +102,7 @@ public class OtpService {
      * @param rawPhone telefone em qualquer formato aceito pelo {@link PhoneNumberService}
      * @param code     código de 6 dígitos que o usuário digitou
      */
-    @Transactional
+    @Transactional(noRollbackFor = OtpVerificationException.class)
     public User verify(String rawPhone, String code) {
         String phone = phoneNumberService.normalize(rawPhone);
         Instant now = Instant.now();

@@ -1,3 +1,4 @@
+import axios from 'axios'
 import apiClient from './client'
 import type { User } from '../types'
 
@@ -23,4 +24,20 @@ export async function verifyOtp(
 // DELETE /auth/sessions/current — revoga o refresh token no backend e limpa o cookie (RF-11)
 export async function logout(): Promise<void> {
   await apiClient.delete('/auth/sessions/current')
+}
+
+// POST /auth/refresh — usado no boot do app para reidratar a sessão a partir
+// do cookie httpOnly de refresh, evitando que F5 caia em /login mesmo com
+// cookie válido. Usa axios bruto (sem apiClient) para não disparar o
+// interceptor de 401, que também faz refresh e provocaria recursão.
+export async function silentRefresh(): Promise<{ accessToken: string; user: User }> {
+  const { data } = await axios.post<{ accessToken: string; user: User }>(
+    '/auth/refresh',
+    {},
+    {
+      baseURL: import.meta.env.VITE_API_BASE_URL,
+      withCredentials: true,
+    },
+  )
+  return data
 }

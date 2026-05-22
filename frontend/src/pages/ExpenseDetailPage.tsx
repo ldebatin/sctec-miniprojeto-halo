@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { z } from 'zod'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pt-br'
@@ -13,12 +13,19 @@ import axios from 'axios'
 dayjs.locale('pt-br')
 
 // ─── Esquema de validação ─────────────────────────────────────────────────────
+// O valor trafega como string pt-BR ("56,60") para preservar as 2 casas no
+// input — o type=number HTML não tem como manter zeros à direita. A conversão
+// para Number só acontece no onSubmit, onde o backend espera reais.
 
 const schema = z.object({
   description: z.string().min(1, 'Descrição obrigatória'),
-  amountReais: z
-    .number({ invalid_type_error: 'Valor obrigatório' })
-    .positive('Valor deve ser maior que zero'),
+  amount: z
+    .string()
+    .min(1, 'Valor obrigatório')
+    .refine((v) => {
+      const n = parseFloat(v.replace(',', '.'))
+      return !isNaN(n) && n > 0
+    }, 'Valor deve ser maior que zero'),
   categoryId: z.string().min(1, 'Categoria obrigatória'),
   occurredAt: z.string().min(1, 'Data obrigatória'),
 })
@@ -47,22 +54,25 @@ export default function ExpenseDetailPage() {
     register,
     handleSubmit,
     reset,
+    control,
     formState: { errors, isSubmitting, isDirty },
   } = useForm<DetailForm>({
     defaultValues: {
       description: '',
-      amountReais: 0,
+      amount: '',
       categoryId: '',
       occurredAt: '',
     },
   })
 
-  // Popula o formulário quando o lançamento é carregado
+  // Popula o formulário quando o lançamento é carregado.
+  // expense.amount já está em reais (numeric(12,2) no backend); formatamos
+  // com 2 casas em pt-BR para o input de texto preservar o "57,00".
   useEffect(() => {
     if (expense) {
       reset({
         description: expense.description,
-        amountReais: expense.amount / 100, // centavos → reais para exibição
+        amount: expense.amount.toFixed(2).replace('.', ','),
         categoryId: expense.categoryId,
         occurredAt: dayjs(expense.occurredAt).format('YYYY-MM-DD'),
       })
@@ -77,7 +87,7 @@ export default function ExpenseDetailPage() {
         id,
         body: {
           description: values.description,
-          amount: Math.round(values.amountReais * 100), // reais → centavos para a API
+          amount: parseFloat(values.amount.replace(',', '.')),
           categoryId: values.categoryId,
           occurredAt: values.occurredAt,
         },
@@ -224,22 +234,32 @@ export default function ExpenseDetailPage() {
           {/* Valor */}
           <div>
             <label className="text-xs font-medium text-gray-600">Valor (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm
-                         focus:outline-none focus:ring-2 focus:ring-primary-500"
-              {...register('amountReais', {
-                valueAsNumber: true,
+            <Controller
+              name="amount"
+              control={control}
+              rules={{
                 validate: (v) => {
-                  const r = schema.shape.amountReais.safeParse(v)
+                  const r = schema.shape.amount.safeParse(v)
                   return r.success ? true : (r.error.errors[0]?.message ?? 'Inválido')
                 },
-              })}
+              }}
+              render={({ field }) => (
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  className="mt-1 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm
+                             focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={field.value}
+                  onChange={(e) => {
+                    // Permite apenas dígitos, vírgula e ponto (mesmo padrão do modal de novo).
+                    field.onChange(e.target.value.replace(/[^0-9,.]/g, ''))
+                  }}
+                />
+              )}
             />
-            {errors.amountReais && (
-              <p className="text-xs text-red-500 mt-0.5">{errors.amountReais.message}</p>
+            {errors.amount && (
+              <p className="text-xs text-red-500 mt-0.5">{errors.amount.message}</p>
             )}
           </div>
 

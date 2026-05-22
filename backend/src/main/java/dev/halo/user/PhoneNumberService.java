@@ -50,6 +50,26 @@ public class PhoneNumberService {
                     "telefone fora do intervalo E.164 (8–15 dígitos): '" + input + "'");
         }
 
-        return "+" + digits;
+        return "+" + canonicalizeBrazilianMobile(digits);
+    }
+
+    /**
+     * Resolve a inconsistência do "9 móvel" brasileiro: o WhatsApp Go envia
+     * JIDs no formato legado de 12 dígitos ({@code 55 + DDD + 8 dígitos}) para
+     * celulares antigos, mas o usuário sempre digita o formato moderno de 13
+     * dígitos ({@code 55 + DDD + 9 + 8 dígitos}). Sem canonicalizar, o mesmo
+     * número vira duas chaves distintas — cadastro pelo webhook (legado) ≠
+     * login web (moderno) — e o {@code findByPhone} no {@code /auth/otp/verify}
+     * falha com "usuário não cadastrado".
+     *
+     * Regra: se o número tem 12 dígitos, começa com {@code 55} e o primeiro
+     * dígito do número local (após o DDD) está em {@code 6–9} (faixa de móvel
+     * brasileiro), insere o {@code 9} obrigatório após o DDD.
+     */
+    private static String canonicalizeBrazilianMobile(String digits) {
+        if (digits.length() != 12 || !digits.startsWith("55")) return digits;
+        char firstLocal = digits.charAt(4);
+        if (firstLocal < '6' || firstLocal > '9') return digits;
+        return digits.substring(0, 4) + "9" + digits.substring(4);
     }
 }

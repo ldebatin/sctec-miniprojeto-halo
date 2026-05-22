@@ -22,7 +22,7 @@ export function useDashboard(month: string): {
   })
 
   // Query secundária: lançamentos do mês ordenados por data desc (size 10)
-  // Complementa o report.recentExpenses quando for necessário cache independente
+  // Complementa o report.expenses quando for necessário cache independente
   const expensesQuery = useQuery({
     queryKey: ['expenses', 'list', { from, to, size: 10 }],
     queryFn:  () => getExpenses({ from, to, size: 10, page: 0 }),
