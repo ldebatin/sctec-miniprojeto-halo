@@ -9,10 +9,11 @@ import java.util.UUID;
 /**
  * DTOs HTTP do {@code /reports} (RF-12, RF-15 — T-039).
  *
- * Centralizado para que o monthly e o categories evoluam juntos — o
- * primeiro reutiliza {@link Category} para o breakdown.
+ * Os records são públicos porque também alimentam o formatter de
+ * WhatsApp (T-040) e o handler de comando {@code "resumo"} (T-038),
+ * ambos fora deste package.
  */
-final class ReportDtos {
+public final class ReportDtos {
 
     private ReportDtos() {}
 
@@ -21,7 +22,7 @@ final class ReportDtos {
      * categoria (ordenado desc) com % do total, e a lista de gastos do
      * período (ordenada por {@code occurred_at desc}).
      */
-    record MonthlyResponse(
+    public record MonthlyResponse(
             String month,
             LocalDate from,
             LocalDate to,
@@ -31,7 +32,7 @@ final class ReportDtos {
     ) {}
 
     /** Resposta de {@code GET /reports/categories}: breakdown no período. */
-    record CategoriesResponse(
+    public record CategoriesResponse(
             LocalDate from,
             LocalDate to,
             BigDecimal total,
@@ -43,7 +44,7 @@ final class ReportDtos {
      * para 2 casas — soma de todas as linhas pode não fechar exatamente em
      * 100% por causa de arredondamento (esperado).
      */
-    record Category(
+    public record Category(
             UUID categoryId,
             String name,
             String color,
