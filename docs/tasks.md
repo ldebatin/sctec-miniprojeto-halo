@@ -610,10 +610,10 @@
 **Entrega:** endpoint dedicado `POST /categories/from-global/{globalId}` que cria uma `categories` para o user com `global_id` apontando para o original. Backend resolve a categoria do user antes da global em buscas.
 
 **Critérios de aceitação:**
-- [ ] User pode customizar uma categoria global (criando sua cópia com novas cor/ícone).
-- [ ] `GET /categories` esconde a global se o user já tem a cópia (mostra só a customizada).
-- [ ] Resolução de categoria por nome no `ExpenseService` prioriza a versão do user.
-- [ ] Documentar a decisão tomada para lançamentos passados (re-vincular ou manter).
+- [x] User pode customizar uma categoria global (criando sua cópia com novas cor/ícone via `POST /categories/from-global/{id}` + `PATCH /categories/{copyId}`).
+- [x] `GET /categories` esconde a global se o user já tem a cópia (mostra só a customizada).
+- [x] Resolução de categoria por nome no `ExpenseService` prioriza a versão do user *(já entregue em T-014, mantido)*.
+- [x] Documentar a decisão tomada para lançamentos passados *(comentário do controller — manter ligados, `ExpenseService.createUserCopy` lazy já cria a cópia que vira o destino do `from-global`)*.
 
 ---
 
