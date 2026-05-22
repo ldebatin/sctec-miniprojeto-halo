@@ -73,6 +73,14 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
 
 halo:
+  web:
+    # URL pública do PWA — usada no comando WhatsApp "site/link/web" (RF-10, T-037).
+    public-url: ${HALO_WEB_PUBLIC_URL:http://localhost:5173}
+    link-triggers:
+      - site
+      - link
+      - web
+      - acessar
   report:
     quickchart:
       # Endpoint público da QuickChart (analise-tecnica §9.3, Opção A).
