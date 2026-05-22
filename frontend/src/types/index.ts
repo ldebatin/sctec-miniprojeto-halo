@@ -37,16 +37,23 @@ export interface ExpensePage {
   size: number
 }
 
+// Linha do breakdown por categoria no GET /reports/monthly
+export interface CategoryBreakdown {
+  categoryId: string
+  name: string
+  color: string
+  total: number
+  percentage: number
+}
+
 // Resposta do GET /reports/monthly (analise-tecnica.md §11)
+// Espelha ReportDtos.MonthlyResponse no backend — qualquer rename aqui exige
+// rename equivalente no record Java.
 export interface MonthlyReport {
   month: string
+  from: string
+  to: string
   total: number
-  byCategory: Array<{
-    categoryId: string
-    categoryName: string
-    color: string
-    total: number
-    percentage: number
-  }>
-  recentExpenses: Expense[]
+  breakdown: CategoryBreakdown[]
+  expenses: Expense[]
 }
