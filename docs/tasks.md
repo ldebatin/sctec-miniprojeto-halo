@@ -707,10 +707,10 @@
 **Entrega:** `ChartGenerator.monthlyPie(report)` que monta o config JSON do Chart.js, chama `https://quickchart.io/chart`, recebe imagem PNG e retorna `byte[]`.
 
 **Critérios de aceitação:**
-- [ ] Gráfico de pizza com cores das categorias.
-- [ ] Tipo de gráfico (pie/bar) escolhido conforme nº de categorias (≤ 6 = pie, > 6 = bar).
-- [ ] Falha no QuickChart degrada para envio apenas da tabela em texto (sem imagem).
-- [ ] Timeout de 5s na chamada.
+- [x] Gráfico de pizza com cores das categorias.
+- [x] Tipo de gráfico (pie/bar) escolhido conforme nº de categorias (≤ 6 = pie, > 6 = bar).
+- [x] Falha no QuickChart degrada para envio apenas da tabela em texto (sem imagem).
+- [x] Timeout de 5s na chamada.
 
 ---
 
