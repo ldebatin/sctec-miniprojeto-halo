@@ -2,6 +2,8 @@ package dev.halo.whatsapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
@@ -137,6 +139,85 @@ class HttpEvolutionClientResilienceTest {
 
         assertThatThrownBy(() -> client.sendText("+5547999999999", "Oi"))
                 .isInstanceOf(HttpClientErrorException.class);
+
+        mockServer.verify();
+    }
+
+    // ----------------------------------------------------------------
+    // sendMedia (T-042) — caminho feliz, body, 50KB, retry, CB
+    // ----------------------------------------------------------------
+
+    @Test
+    void sendMedia_chama_endpoint_correto_com_body_base64() {
+        byte[] png = new byte[]{(byte) 0x89, 'P', 'N', 'G', 1, 2, 3};
+        String expectedBase64 = java.util.Base64.getEncoder().encodeToString(png);
+
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .header("instance", "halo-bot"))
+                .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers
+                        .header("apikey", "fake-token"))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.number").value("5547999999999"))
+                .andExpect(jsonPath("$.mediatype").value("image"))
+                .andExpect(jsonPath("$.mimetype").value("image/png"))
+                .andExpect(jsonPath("$.media").value(expectedBase64))
+                .andExpect(jsonPath("$.caption").value("Resumo de Maio"))
+                .andRespond(withSuccess());
+
+        client.sendMedia("+5547999999999", png, "image/png", "Resumo de Maio");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void sendMedia_aceita_caption_null() {
+        byte[] png = new byte[]{1, 2, 3};
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andExpect(jsonPath("$.caption").doesNotExist())
+                .andRespond(withSuccess());
+
+        client.sendMedia("+5547999999999", png, "image/png", null);
+
+        mockServer.verify();
+    }
+
+    @Test
+    void sendMedia_com_imagem_de_50KB_funciona() {
+        byte[] big = new byte[50 * 1024];
+        for (int i = 0; i < big.length; i++) big[i] = (byte) (i % 256);
+
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess());
+
+        client.sendMedia("+5547999999999", big, "image/png", "50KB");
+
+        mockServer.verify();
+    }
+
+    @Test
+    void sendMedia_imageBytes_vazio_lanca_imediatamente_sem_chamar_o_server() {
+        assertThatThrownBy(() -> client.sendMedia("+5547999999999", new byte[0], "image/png", null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> client.sendMedia("+5547999999999", null, "image/png", null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        mockServer.verify(); // nenhuma expectativa registrada
+    }
+
+    @Test
+    void sendMedia_retry_em_5xx_ate_obter_sucesso() {
+        byte[] png = new byte[]{1, 2, 3};
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andRespond(withServerError());
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andRespond(withServerError());
+        mockServer.expect(requestTo("http://evolution.test/send/media"))
+                .andRespond(withSuccess());
+
+        client.sendMedia("+5547999999999", png, "image/png", null);
 
         mockServer.verify();
     }

@@ -723,9 +723,9 @@
 **Entrega:** `EvolutionClient.sendMedia(phone, imageBytes, caption)` que faz `POST /message/sendMedia/{instance}` com a imagem em base64.
 
 **Critérios de aceitação:**
-- [ ] Mensagem enviada com a imagem + caption opcional.
-- [ ] Retry e circuit breaker mesma config do `sendText`.
-- [ ] Test com imagem de 50KB funciona.
+- [x] Mensagem enviada com a imagem + caption opcional.
+- [x] Retry e circuit breaker mesma config do `sendText`.
+- [x] Test com imagem de 50KB funciona.
 
 ---
 
