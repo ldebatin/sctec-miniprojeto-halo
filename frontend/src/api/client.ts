@@ -29,8 +29,9 @@ apiClient.interceptors.response.use(
 
     const original = axiosError.config as RetryableConfig | undefined
 
-    // Só tenta refresh uma vez; ignora 401 sem config (ex.: erro de rede)
-    if (axiosError.response?.status === 401 && original && !original._retry) {
+    // Só tenta refresh uma vez; ignora 401 sem config e no próprio logout
+    const isLogout = original?.url?.includes('/auth/sessions/current')
+    if (axiosError.response?.status === 401 && original && !original._retry && !isLogout) {
       original._retry = true
 
       try {

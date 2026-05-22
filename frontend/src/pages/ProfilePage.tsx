@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useProfile, useUpdateProfile } from '../hooks/useProfile'
 import { useAuthStore } from '../stores/auth'
 import { getCategories, createCategory, deleteCategory } from '../api/categories'
+import { logout as logoutApi } from '../api/auth'
 import axios from 'axios'
 
 // ─── Utilitários ──────────────────────────────────────────────────────────────
@@ -45,13 +46,21 @@ function extractApiError(err: unknown): string {
 export default function ProfilePage() {
   const navigate = useNavigate()
   const clearAuth = useAuthStore((s) => s.clearAuth)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const { user, isLoading, isError } = useProfile()
 
   if (isLoading) return <ProfileSkeleton />
   if (isError || !user) return <ProfileError />
 
-  function handleLogout() {
+  async function handleLogout() {
+    if (isLoggingOut) return
+    setIsLoggingOut(true)
+    try {
+      await logoutApi()
+    } catch {
+      // ignora erros de rede — o objetivo é sempre deslogar o cliente
+    }
     clearAuth()
     navigate('/login', { replace: true })
   }
@@ -87,10 +96,11 @@ export default function ProfilePage() {
         {/* Botão de logout */}
         <button
           onClick={handleLogout}
+          disabled={isLoggingOut}
           className="border border-red-200 text-red-500 rounded-lg py-3 w-full text-sm font-medium
-                     hover:bg-red-50 transition-colors"
+                     hover:bg-red-50 disabled:opacity-60 transition-colors"
         >
-          Sair da conta
+          {isLoggingOut ? 'Saindo…' : 'Sair da conta'}
         </button>
       </div>
     </div>

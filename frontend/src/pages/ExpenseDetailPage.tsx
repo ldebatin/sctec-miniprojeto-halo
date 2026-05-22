@@ -192,6 +192,14 @@ export default function ExpenseDetailPage() {
           </span>
         </div>
 
+        {/* Mensagem original do WhatsApp (RF-10) */}
+        {expense.source === 'WHATSAPP' && expense.rawMessage && (
+          <div className="bg-gray-50 rounded-xl px-3 py-2">
+            <p className="text-xs font-medium text-gray-500 mb-0.5">Mensagem original</p>
+            <p className="text-sm text-gray-700 italic">"{expense.rawMessage}"</p>
+          </div>
+        )}
+
         {/* Formulário de edição */}
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
           {/* Descrição */}

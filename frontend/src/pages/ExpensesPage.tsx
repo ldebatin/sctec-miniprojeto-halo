@@ -45,6 +45,8 @@ export default function ExpensesPage() {
 
   // Filtros de API
   const [categoryId, setCategoryId] = useState<string | undefined>(undefined)
+  const [from, setFrom] = useState<string | undefined>(undefined)
+  const [to, setTo] = useState<string | undefined>(undefined)
   const [size, setSize] = useState(10)
 
   // Filtro local por texto
@@ -54,7 +56,7 @@ export default function ExpensesPage() {
   const [showModal, setShowModal] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  const { data, isLoading, isError, refetch } = useExpenses({ categoryId, page: 0, size })
+  const { data, isLoading, isError, refetch } = useExpenses({ categoryId, from, to, page: 0, size })
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -73,7 +75,23 @@ export default function ExpensesPage() {
 
   function handleCategoryChip(id: string | undefined) {
     setCategoryId(id)
-    setSize(10) // reseta paginação ao trocar filtro
+    setSize(10)
+  }
+
+  function handleFromChange(value: string) {
+    setFrom(value || undefined)
+    setSize(10)
+  }
+
+  function handleToChange(value: string) {
+    setTo(value || undefined)
+    setSize(10)
+  }
+
+  function handleClearDates() {
+    setFrom(undefined)
+    setTo(undefined)
+    setSize(10)
   }
 
   return (
@@ -100,6 +118,41 @@ export default function ExpensesPage() {
           className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm
                      placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
         />
+
+        {/* Filtro de período */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <label className="text-xs text-gray-400 mb-0.5 block">De</label>
+            <input
+              type="date"
+              value={from ?? ''}
+              max={to ?? undefined}
+              onChange={(e) => handleFromChange(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-gray-400 mb-0.5 block">Até</label>
+            <input
+              type="date"
+              value={to ?? ''}
+              min={from ?? undefined}
+              onChange={(e) => handleToChange(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm
+                         focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          {(from || to) && (
+            <button
+              onClick={handleClearDates}
+              aria-label="Limpar datas"
+              className="mt-4 text-xs text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
 
         {/* Chips de categoria */}
         {categories && categories.length > 0 && (
