@@ -1,23 +1,6 @@
 name: halo
 
 services:
-  pgadmin:
-      image: dpage/pgadmin4
-      container_name: pgadmin_container
-      restart: always
-      user: "root"
-      environment:
-        PGADMIN_DEFAULT_EMAIL: halo@local.com 
-        PGADMIN_DEFAULT_PASSWORD: halo
-      ports:
-        - "8089:80"
-      volumes:
-        - pgadmin_data:/var/lib/pgadmin
-      depends_on:
-        - postgres
-      networks:
-        - halo-net
-
   postgres:
     image: postgres:16
     container_name: halo-postgres
@@ -124,7 +107,6 @@ services:
 volumes:
   halo-pgdata:
     name: halo-pgdata
-  pgadmin_data:
 
 networks:
   halo-net:
