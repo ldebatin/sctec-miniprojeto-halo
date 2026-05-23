@@ -1,6 +1,7 @@
 package dev.halo.whatsapp.command;
 
 import dev.halo.whatsapp.EvolutionClient;
+import dev.halo.whatsapp.TutorialMessage;
 import dev.halo.whatsapp.WhatsappMessage;
 import dev.halo.whatsapp.WhatsappMessageStatus;
 import java.time.Instant;
@@ -25,22 +26,7 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class UnknownMessageHandler {
 
-    static final String HELP_MESSAGE = """
-            Não entendi sua mensagem 🤔
-
-            Aqui vai como usar o Halo:
-
-            💸 Registrar um gasto
-               _Mercado 87,30_
-               _Uber 25 ontem_
-               _Gasolina 150_
-
-            📊 Ver resumo do mês
-               _resumo_
-               _resumo de abril_
-
-            🌐 Acessar a web
-               _site_""";
+    static final String HELP_MESSAGE = "Não entendi sua mensagem 🤔\n\n" + TutorialMessage.TEXT;
 
     private final EvolutionClient evolutionClient;
 

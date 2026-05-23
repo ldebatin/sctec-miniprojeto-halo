@@ -9,6 +9,7 @@ import dev.halo.user.User;
 import dev.halo.user.UserRepository;
 import dev.halo.whatsapp.EvolutionClient;
 import dev.halo.whatsapp.InboundMessageService;
+import dev.halo.whatsapp.TutorialMessage;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
 import java.time.Instant;
 import java.util.Optional;
@@ -93,7 +94,8 @@ class ConversationFlowIntegrationTest {
         Optional<User> user = userRepository.findByPhone(PHONE_E164);
         assertThat(user).isPresent();
         assertThat(user.get().getName()).isEqualTo("Maria");
-        verify(evolutionClient).sendText(PHONE_E164, "Bem-vindo(a), Maria!");
+        verify(evolutionClient).sendText(
+                PHONE_E164, "Bem-vindo(a), Maria!\n\n" + TutorialMessage.TEXT);
     }
 
     @Test

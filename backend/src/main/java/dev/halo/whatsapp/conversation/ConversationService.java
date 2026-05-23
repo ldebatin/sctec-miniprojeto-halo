@@ -4,6 +4,7 @@ import dev.halo.user.User;
 import dev.halo.user.UserRepository;
 import dev.halo.user.UserService;
 import dev.halo.whatsapp.EvolutionClient;
+import dev.halo.whatsapp.TutorialMessage;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -20,7 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
  *   <li>Telefone desconhecido envia qualquer mensagem → grava
  *       {@code conversation_state(AWAITING_NAME)} e responde "Qual seu nome?".</li>
  *   <li>Mesmo telefone responde com um nome (>= 2 chars) → cria o usuário,
- *       apaga o estado e envia "Bem-vindo(a), &lt;nome&gt;!".</li>
+ *       apaga o estado e envia "Bem-vindo(a), &lt;nome&gt;!" seguido do
+ *       tutorial compartilhado em {@link dev.halo.whatsapp.TutorialMessage}.</li>
  *   <li>Nome muito curto → reenvia a pergunta sem alterar o estado.</li>
  *   <li>Estado com {@code expires_at &lt; now()} é descartado e a próxima mensagem
  *       reinicia o fluxo (TTL 15 min).</li>
@@ -105,7 +107,9 @@ public class ConversationService {
         userRepository.flush();
         conversationStateRepository.delete(state);
 
-        evolutionClient.sendText(state.getPhone(), "Bem-vindo(a), " + name + "!");
+        evolutionClient.sendText(
+                state.getPhone(),
+                "Bem-vindo(a), " + name + "!\n\n" + TutorialMessage.TEXT);
         log.info("Cadastro concluído phone={} userId={}", state.getPhone(), user.getId());
         return true;
     }
