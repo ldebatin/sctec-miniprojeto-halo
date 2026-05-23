@@ -2,6 +2,7 @@ package dev.halo.ai;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,8 @@ class HttpGeminiClientUnitTest {
     void prompt_inclui_lista_de_categorias_e_texto_do_usuario() {
         String prompt = HttpGeminiClient.buildPrompt(
                 "Mercado 87,30",
-                List.of("Alimentação", "Mercado", "Transporte"));
+                List.of("Alimentação", "Mercado", "Transporte"),
+                LocalDate.of(2026, 5, 22));
 
         assertThat(prompt).contains("Alimentação, Mercado, Transporte");
         assertThat(prompt).contains("Mercado 87,30");
@@ -44,8 +46,22 @@ class HttpGeminiClientUnitTest {
 
     @Test
     void prompt_com_lista_vazia_marca_nenhuma() {
-        String prompt = HttpGeminiClient.buildPrompt("Uber 25", List.of());
+        String prompt = HttpGeminiClient.buildPrompt(
+                "Uber 25", List.of(), LocalDate.of(2026, 5, 22));
         assertThat(prompt).contains("(nenhuma)");
+    }
+
+    @Test
+    void prompt_inclui_data_atual_e_instrucoes_para_datas_relativas() {
+        // Sem âncora de "hoje" o modelo chutava datas (sintoma observado:
+        // "uber 33 ontem" virava 2025-01-01). A âncora + as instruções
+        // explícitas de ontem/anteontem precisam estar no prompt.
+        String prompt = HttpGeminiClient.buildPrompt(
+                "uber 33 ontem", List.of("Transporte"), LocalDate.of(2026, 5, 22));
+
+        assertThat(prompt).contains("2026-05-22");
+        assertThat(prompt).contains("ontem");
+        assertThat(prompt).contains("NÃO invente datas");
     }
 
     @Test
