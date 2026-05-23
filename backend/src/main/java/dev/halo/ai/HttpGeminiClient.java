@@ -74,7 +74,7 @@ public class HttpGeminiClient implements GeminiClient {
     @Override
     public ExpenseParseResult parseExpense(
             String text, List<String> userCategoryNames, UUID userId) {
-        String prompt = buildPrompt(truncate(text), userCategoryNames);
+        String prompt = buildPrompt(truncate(text), userCategoryNames, LocalDate.now());
         GenerateContentRequest body = new GenerateContentRequest(
                 List.of(new Content(List.of(new Part(prompt)))),
                 new GenerationConfig(TEMPERATURE, MAX_OUTPUT_TOKENS, "application/json", RESPONSE_SCHEMA)
@@ -120,8 +120,13 @@ public class HttpGeminiClient implements GeminiClient {
         return text.length() > MAX_INPUT_CHARS ? text.substring(0, MAX_INPUT_CHARS) : text;
     }
 
-    /** §9.2 — template do prompt. Lista de categorias é injetada como CSV. */
-    static String buildPrompt(String userText, List<String> categories) {
+    /**
+     * §9.2 — template do prompt. Lista de categorias é injetada como CSV;
+     * {@code today} entra como âncora pra resolver datas relativas (hoje,
+     * ontem, sexta passada). Sem essa âncora, o modelo chuta datas baseado
+     * no treino — sintoma observado: "uber 33 ontem" virava 2025-01-01.
+     */
+    static String buildPrompt(String userText, List<String> categories, LocalDate today) {
         String categoryList = categories == null || categories.isEmpty()
                 ? "(nenhuma)"
                 : String.join(", ", categories);
@@ -136,10 +141,15 @@ public class HttpGeminiClient implements GeminiClient {
                 }
                 Regras:
                 - Se a mensagem não parece descrever um gasto, devolva {"error":"NOT_EXPENSE"}.
-                - Se a data não foi informada, deixe null.
+                - Hoje é %s (use essa data como referência para termos relativos).
+                - Resolva datas relativas em pt-BR: "hoje" → hoje, "ontem" → hoje-1 dia,
+                  "anteontem" → hoje-2 dias, "sexta passada" / "semana passada" → ajuste
+                  para o dia da semana anterior mais próximo.
+                - Se a data não foi informada na mensagem, deixe occurred_at como null.
+                  NÃO invente datas: na dúvida, devolva null.
                 - Categorias válidas: %s.
                 Mensagem: \"\"\"%s\"\"\"
-                """.formatted(categoryList, userText);
+                """.formatted(today, categoryList, userText);
     }
 
     /**
