@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -115,7 +115,7 @@ class WebhookE2EIntegrationTest {
     }
 
     @Test
-    void usuario_cadastrado_com_mensagem_sem_gasto_marca_IGNORED() {
+    void usuario_cadastrado_com_mensagem_sem_gasto_marca_NOT_UNDERSTOOD_e_envia_ajuda() {
         insertExistingUser();
         when(geminiClient.parseExpense(anyString(), anyList(), any())).thenReturn(null);
 
@@ -123,8 +123,9 @@ class WebhookE2EIntegrationTest {
 
         assertThat(expenseRepository.count()).isZero();
         WhatsappMessage saved = messageRepository.findByEvolutionMsgId("E2E-IGN").orElseThrow();
-        assertThat(saved.getStatus()).isEqualTo(WhatsappMessageStatus.IGNORED);
-        verify(evolutionClient, never()).sendText(anyString(), anyString());
+        assertThat(saved.getStatus()).isEqualTo(WhatsappMessageStatus.NOT_UNDERSTOOD);
+        // Substitui o silêncio anterior: agora respondemos com a mensagem de ajuda.
+        verify(evolutionClient).sendText(anyString(), contains("Não entendi"));
     }
 
     @Test
