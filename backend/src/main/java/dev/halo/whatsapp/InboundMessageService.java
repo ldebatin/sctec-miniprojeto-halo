@@ -6,6 +6,7 @@ import dev.halo.user.PhoneNumberService;
 import dev.halo.user.User;
 import dev.halo.user.UserService;
 import dev.halo.whatsapp.command.SummaryCommandHandler;
+import dev.halo.whatsapp.command.UnknownMessageHandler;
 import dev.halo.whatsapp.command.WebLinkCommandHandler;
 import dev.halo.whatsapp.conversation.ConversationService;
 import dev.halo.whatsapp.dto.EvolutionPayloadDto;
@@ -45,6 +46,7 @@ public class InboundMessageService {
     private final WebLinkCommandHandler webLinkCommandHandler;
     private final SummaryCommandHandler summaryCommandHandler;
     private final WhatsappExpenseProcessor expenseProcessor;
+    private final UnknownMessageHandler unknownMessageHandler;
 
     /**
      * Persiste a mensagem se ainda não existe; caso contrário devolve a existente.
@@ -118,7 +120,10 @@ public class InboundMessageService {
         if (user == null) {
             conversationService.handleAwaitingName(normalizedPhone, content);
         } else if (!summaryCommandHandler.tryHandle(user, normalizedPhone, content, saved)) {
-            expenseProcessor.process(user, saved);
+            WhatsappMessageStatus result = expenseProcessor.process(user, saved);
+            if (result == WhatsappMessageStatus.NOT_UNDERSTOOD) {
+                unknownMessageHandler.sendHelp(normalizedPhone, saved);
+            }
         }
 
         return saved;
