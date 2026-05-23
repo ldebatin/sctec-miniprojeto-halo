@@ -59,4 +59,41 @@ class PhoneNumberServiceTest {
         assertThatThrownBy(() -> service.normalize("1234567890123456"))
                 .isInstanceOf(InvalidPhoneException.class);
     }
+
+    @Test
+    void insere_nono_digito_em_celular_br_legado() {
+        // JID antigo do WhatsApp chega sem o 9 — normalize precisa inserir
+        assertThat(service.normalize("554799484436")).isEqualTo("+5547999484436");
+    }
+
+    @Test
+    void insere_nono_digito_em_celular_br_legado_com_jid() {
+        assertThat(service.normalize("554799484436@s.whatsapp.net"))
+                .isEqualTo("+5547999484436");
+    }
+
+    @Test
+    void insere_nono_digito_em_celular_br_legado_iniciando_com_8() {
+        // Operadoras com prefixo 8 também são celular — precisam do 9 também
+        assertThat(service.normalize("554788123456")).isEqualTo("+5547988123456");
+    }
+
+    @Test
+    void mantem_numero_com_nono_digito_inalterado() {
+        // Idempotência: chamar normalize duas vezes não acumula 9s
+        String once = service.normalize("554799484436");
+        assertThat(service.normalize(once)).isEqualTo(once);
+    }
+
+    @Test
+    void nao_mexe_em_fixo_brasileiro() {
+        // Fixos começam com 2-5; não devem receber o 9
+        assertThat(service.normalize("554732123456")).isEqualTo("+554732123456");
+    }
+
+    @Test
+    void nao_mexe_em_numero_fora_do_brasil() {
+        // Outros DDIs não devem ser afetados, mesmo com 12 dígitos
+        assertThat(service.normalize("351912345678")).isEqualTo("+351912345678");
+    }
 }

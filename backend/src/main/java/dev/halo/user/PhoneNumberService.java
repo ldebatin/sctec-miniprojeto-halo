@@ -10,8 +10,11 @@ import org.springframework.stereotype.Service;
  * {@code 5547999999999}, com espaços/parênteses/traços) e devolve sempre o
  * formato canônico {@code +<DDI><número>} usado em {@code users.phone}.
  *
- * Esta é a versão definitiva — substitui o helper inline que vivia em
- * {@code InboundMessageService} durante a T-009.
+ * Reconciliação do 9º dígito (celular brasileiro): JIDs antigos do WhatsApp
+ * chegam no formato legado (12 dígitos: {@code 55<DDD><8 dígitos>}), enquanto
+ * o que o usuário digita hoje tem 13 (com o 9 prefixado no número local).
+ * Para o mesmo telefone bater entre webhook do Evolution e login OTP da web,
+ * normalizamos sempre para a forma com o 9.
  */
 @Service
 public class PhoneNumberService {
@@ -50,6 +53,24 @@ public class PhoneNumberService {
                     "telefone fora do intervalo E.164 (8–15 dígitos): '" + input + "'");
         }
 
+        digits = ensureBrazilianMobileNinthDigit(digits);
+
         return "+" + digits;
+    }
+
+    /**
+     * Insere o 9 inicial em celulares brasileiros recebidos no formato legado
+     * (12 dígitos: {@code 55 + DDD + 8 dígitos começando com 8 ou 9}). Fixos
+     * brasileiros começam com 2–5 — não são afetados.
+     */
+    private String ensureBrazilianMobileNinthDigit(String digits) {
+        if (digits.length() != 12 || !digits.startsWith("55")) {
+            return digits;
+        }
+        char firstLocal = digits.charAt(4);
+        if (firstLocal != '8' && firstLocal != '9') {
+            return digits;
+        }
+        return digits.substring(0, 4) + "9" + digits.substring(4);
     }
 }
