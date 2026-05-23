@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/pt-br'
 import { useAuthStore } from '../stores/auth'
 import { useDashboard } from '../hooks/useDashboard'
+import type { CategoryBreakdown } from '../types'
 
 dayjs.locale('pt-br')
 
@@ -29,6 +30,15 @@ export default function DashboardPage() {
   const [month] = useState(() => dayjs().format('YYYY-MM'))
 
   const { report, isLoading, isError, refetch } = useDashboard(month)
+
+  // ExpenseResponse do backend só carrega o categoryId — montamos um lookup a
+  // partir do breakdown pra resolver nome/cor da categoria de cada gasto sem
+  // chamada extra.
+  const categoryByIdLookup = useMemo<Map<string, CategoryBreakdown>>(() => {
+    const map = new Map<string, CategoryBreakdown>()
+    report?.breakdown.forEach((c) => map.set(c.categoryId, c))
+    return map
+  }, [report])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -73,15 +83,15 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <SkeletonList rows={4} />
-          ) : !report?.byCategory.length ? (
+          ) : !report?.breakdown.length ? (
             <EmptyState message="Nenhum gasto registrado ainda." />
           ) : (
             <ul className="space-y-3">
-              {report.byCategory.slice(0, 5).map((cat) => (
+              {report.breakdown.slice(0, 5).map((cat) => (
                 <li key={cat.categoryId} className="bg-white rounded-xl p-3 shadow-sm">
                   <div className="flex justify-between items-center mb-1.5">
                     <span className="text-sm font-medium text-gray-700">
-                      {cat.categoryName}
+                      {cat.name}
                     </span>
                     <span className="text-sm font-semibold text-gray-800">
                       {brl.format(cat.total)}
@@ -113,11 +123,13 @@ export default function DashboardPage() {
 
           {isLoading ? (
             <SkeletonList rows={3} />
-          ) : !report?.recentExpenses.length ? (
+          ) : !report?.expenses.length ? (
             <EmptyState message="Nenhum lançamento encontrado." />
           ) : (
             <ul className="space-y-2">
-              {report.recentExpenses.map((expense) => (
+              {report.expenses.slice(0, 10).map((expense) => {
+                const cat = categoryByIdLookup.get(expense.categoryId)
+                return (
                 <li
                   key={expense.id}
                   className="bg-white rounded-xl p-3 shadow-sm flex items-center gap-3"
@@ -125,7 +137,7 @@ export default function DashboardPage() {
                   {/* Círculo colorido da categoria */}
                   <div
                     className="w-9 h-9 rounded-full flex-shrink-0"
-                    style={{ backgroundColor: expense.category?.color ?? '#e5e7eb' }}
+                    style={{ backgroundColor: cat?.color ?? '#e5e7eb' }}
                     aria-hidden="true"
                   />
 
@@ -134,7 +146,7 @@ export default function DashboardPage() {
                       {expense.description}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {expense.category?.name ?? 'Sem categoria'} ·{' '}
+                      {cat?.name ?? 'Sem categoria'} ·{' '}
                       {dateLabel(expense.occurredAt)}
                     </p>
                   </div>
@@ -143,7 +155,8 @@ export default function DashboardPage() {
                     {brl.format(expense.amount)}
                   </span>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           )}
         </section>
